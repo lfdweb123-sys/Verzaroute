@@ -1,12 +1,21 @@
-import type { AiProviderAdapter, ChatCompletionRequest, ChatCompletionResult } from "./types";
+import type { AiProviderAdapter, ChatCompletionRequest, ChatCompletionResult, ChatMessage } from "./types";
 
 export function createGoogleAdapter(apiKey: string | undefined): AiProviderAdapter {
+  /** Convertit nos blocs de contenu génériques vers le format natif Gemini (parts: [...]). */
+  function toGeminiParts(content: ChatMessage["content"]) {
+    if (typeof content === "string") return [{ text: content }];
+    return content.map((block) => {
+      if (block.type === "text") return { text: block.text };
+      return { inline_data: { mime_type: block.mimeType, data: block.base64 } };
+    });
+  }
+
   function toGeminiContents(req: ChatCompletionRequest) {
     const systemMsg = req.messages.find((m) => m.role === "system")?.content;
     const contents = req.messages
       .filter((m) => m.role !== "system")
-      .map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
-    return { systemMsg, contents };
+      .map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: toGeminiParts(m.content) }));
+    return { systemMsg: typeof systemMsg === "string" ? systemMsg : undefined, contents };
   }
 
   async function callApi(req: ChatCompletionRequest, stream: boolean) {

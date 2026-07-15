@@ -1,9 +1,14 @@
-import type { AiProviderAdapter, ChatCompletionRequest, ChatCompletionResult } from "./types";
+import type { AiProviderAdapter, ChatCompletionRequest, ChatCompletionResult, ChatMessage } from "./types";
 
 /**
  * De nombreux fournisseurs (OpenAI, DeepSeek, Mistral, Moonshot/Kimi, MiniMax, Z.ai, StepFun, xAI/Grok)
  * exposent une API compatible avec le format /chat/completions d'OpenAI.
  * Cet adapter générique évite de dupliquer le code HTTP pour chacun.
+ *
+ * NOTE MULTIMODAL : tous ces fournisseurs ne supportent pas forcément les images/documents
+ * (ex: DeepSeek et Mistral n'acceptent pas toujours l'image_url pour tous leurs modèles).
+ * Le contenu est transmis dans le format standard OpenAI ; si le fournisseur/modèle ne supporte
+ * pas un bloc donné, il renverra une erreur explicite que l'on remonte telle quelle à l'utilisateur.
  */
 export function createOpenAiCompatibleAdapter(opts: {
   id: string;
@@ -13,10 +18,31 @@ export function createOpenAiCompatibleAdapter(opts: {
 }): AiProviderAdapter {
   const authHeader = opts.authHeader ?? ((key: string) => ({ Authorization: `Bearer ${key}` }));
 
+  /** Convertit nos blocs de contenu génériques vers le format natif OpenAI (content: [...]). */
+  function toOpenAiContent(content: ChatMessage["content"]) {
+    if (typeof content === "string") return content;
+    return content.map((block) => {
+      if (block.type === "text") {
+        return { type: "text", text: block.text };
+      }
+      if (block.type === "image") {
+        return {
+          type: "image_url",
+          image_url: { url: `data:${block.mimeType};base64,${block.base64}` },
+        };
+      }
+      return {
+        type: "text",
+        text: `[Document joint : ${block.filename ?? "fichier"} (${block.mimeType}) — non pris en charge nativement par ce fournisseur]`,
+      };
+    });
+  }
+
   async function callApi(req: ChatCompletionRequest, stream: boolean) {
     if (!opts.apiKey) {
       throw new Error(`Clé API manquante pour le fournisseur "${opts.id}"`);
     }
+    const messages = req.messages.map((m) => ({ role: m.role, content: toOpenAiContent(m.content) }));
     const res = await fetch(`${opts.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
@@ -25,7 +51,7 @@ export function createOpenAiCompatibleAdapter(opts: {
       },
       body: JSON.stringify({
         model: req.model,
-        messages: req.messages,
+        messages,
         temperature: req.temperature ?? 0.7,
         max_tokens: req.max_tokens ?? 1024,
         top_p: req.top_p,

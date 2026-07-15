@@ -65,6 +65,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Les champs 'model' et 'messages' sont requis" }, { status: 400 });
   }
 
+  const payloadSize = JSON.stringify(messages).length;
+  const MAX_PAYLOAD_BYTES = 15 * 1024 * 1024;
+  if (payloadSize > MAX_PAYLOAD_BYTES) {
+    return NextResponse.json(
+      { error: "Le(s) fichier(s) joint(s) sont trop volumineux. Réduis la taille ou le nombre de fichiers." },
+      { status: 413 }
+    );
+  }
+
   const model = await resolveModel(modelId);
   if (!model) {
     return NextResponse.json({ error: `Modèle inconnu ou désactivé: ${modelId}` }, { status: 400 });

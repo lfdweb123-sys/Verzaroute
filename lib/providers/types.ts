@@ -1,6 +1,33 @@
+/**
+ * Types de messages multimodaux : content peut être une simple chaîne (rétrocompatible)
+ * ou un tableau de blocs (texte + images + documents), pour permettre l'envoi de
+ * fichiers depuis l'interface de chat du dashboard.
+ */
+export interface TextContentBlock {
+  type: "text";
+  text: string;
+}
+
+export interface ImageContentBlock {
+  type: "image";
+  /** Image encodée en base64 (sans le préfixe data:...;base64,) */
+  base64: string;
+  mimeType: string; // ex: "image/png", "image/jpeg", "image/webp"
+}
+
+export interface DocumentContentBlock {
+  type: "document";
+  /** Document encodé en base64 (PDF principalement, supporté nativement par Claude/Gemini) */
+  base64: string;
+  mimeType: string; // ex: "application/pdf"
+  filename?: string;
+}
+
+export type ContentBlock = TextContentBlock | ImageContentBlock | DocumentContentBlock;
+
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
-  content: string;
+  content: string | ContentBlock[];
 }
 
 export interface ChatCompletionRequest {

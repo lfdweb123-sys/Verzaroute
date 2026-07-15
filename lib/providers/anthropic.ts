@@ -1,14 +1,34 @@
-import type { AiProviderAdapter, ChatCompletionRequest, ChatCompletionResult } from "./types";
+import type { AiProviderAdapter, ChatCompletionRequest, ChatCompletionResult, ChatMessage } from "./types";
 
 export function createAnthropicAdapter(apiKey: string | undefined): AiProviderAdapter {
   const baseUrl = "https://api.anthropic.com/v1/messages";
+
+  /** Convertit nos blocs de contenu génériques vers le format natif Anthropic. */
+  function toAnthropicContent(content: ChatMessage["content"]) {
+    if (typeof content === "string") return content;
+    return content.map((block) => {
+      if (block.type === "text") {
+        return { type: "text", text: block.text };
+      }
+      if (block.type === "image") {
+        return {
+          type: "image",
+          source: { type: "base64", media_type: block.mimeType, data: block.base64 },
+        };
+      }
+      return {
+        type: "document",
+        source: { type: "base64", media_type: block.mimeType, data: block.base64 },
+      };
+    });
+  }
 
   function splitSystem(req: ChatCompletionRequest) {
     const system = req.messages.find((m) => m.role === "system")?.content;
     const messages = req.messages
       .filter((m) => m.role !== "system")
-      .map((m) => ({ role: m.role, content: m.content }));
-    return { system, messages };
+      .map((m) => ({ role: m.role, content: toAnthropicContent(m.content) }));
+    return { system: typeof system === "string" ? system : undefined, messages };
   }
 
   async function callApi(req: ChatCompletionRequest, stream: boolean) {
