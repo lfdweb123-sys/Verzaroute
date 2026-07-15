@@ -7,7 +7,22 @@ const PROVIDER_LABELS: Record<ProviderId, string> = {
   minimax: "MiniMax", zai: "Z.ai", stepfun: "StepFun",
 };
 
+// Accent coloré discret par fournisseur, utilisé sur la barre supérieure de chaque carte
+const PROVIDER_ACCENT: Record<ProviderId, string> = {
+  openai: "from-emerald-400/70 to-emerald-400/0",
+  anthropic: "from-orange-400/70 to-orange-400/0",
+  google: "from-blue-400/70 to-blue-400/0",
+  xai: "from-slate-300/70 to-slate-300/0",
+  deepseek: "from-indigo-400/70 to-indigo-400/0",
+  mistral: "from-red-400/70 to-red-400/0",
+  moonshot: "from-purple-400/70 to-purple-400/0",
+  minimax: "from-pink-400/70 to-pink-400/0",
+  zai: "from-cyan-400/70 to-cyan-400/0",
+  stepfun: "from-yellow-400/70 to-yellow-400/0",
+};
+
 const FEATURED_IDS = ["GPT-5", "Claude Sonnet 5", "Gemini 2.5 Pro", "DeepSeek V3"];
+const POPULAR_MODEL = "Claude Sonnet 5";
 
 export function ModelsShowcase() {
   const featured = MODELS_CATALOG.filter((m) => FEATURED_IDS.includes(m.displayName)).slice(0, 4);
@@ -30,23 +45,60 @@ export function ModelsShowcase() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        {featured.map((model) => (
-          <div key={model.displayName} className="rounded-2xl border border-white/10 bg-obsidian-card p-5 card-glow transition-all">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
-              {PROVIDER_LABELS[model.provider]}
-            </span>
-            <h3 className="text-white font-semibold mt-1.5 mb-2">{model.displayName}</h3>
-            <p className="text-xs text-white/55 leading-relaxed mb-4 min-h-[48px]">{model.description}</p>
-            <p className="text-gold text-sm font-semibold">
-              ${model.inputPricePerMTokUsd.toFixed(2)} <span className="text-white/40 font-normal">/ 1M tokens</span>
-            </p>
-          </div>
-        ))}
+        {featured.map((model) => {
+          const isPopular = model.displayName === POPULAR_MODEL;
+          return (
+            <div
+              key={model.displayName}
+              className={`group relative rounded-2xl border bg-obsidian-card p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-gold overflow-hidden ${
+                isPopular ? "border-gold/40" : "border-white/10 hover:border-white/20"
+              }`}
+            >
+              <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${PROVIDER_ACCENT[model.provider]}`} />
+
+              {isPopular && (
+                <span className="absolute top-3 right-3 rounded-full bg-gold-gradient px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-obsidian">
+                  Populaire
+                </span>
+              )}
+
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
+                  {PROVIDER_LABELS[model.provider]}
+                </span>
+                <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-white/40">
+                  {(model.contextWindow / 1000).toFixed(0)}K ctx
+                </span>
+              </div>
+
+              <h3 className="text-white font-semibold mb-2 group-hover:text-gold transition-colors">
+                {model.displayName}
+              </h3>
+              <p className="text-xs text-white/55 leading-relaxed mb-4 min-h-[48px]">{model.description}</p>
+
+              <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                <p className="text-gold text-sm font-semibold">
+                  ${model.inputPricePerMTokUsd.toFixed(2)}
+                  <span className="text-white/40 font-normal text-xs"> /1M tokens</span>
+                </p>
+                <div className="flex gap-1">
+                  {model.tags.slice(0, 1).map((tag) => (
+                    <span key={tag} className="rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-white/50">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <div className="mt-6 text-center">
-        <a href="/register" className="text-sm text-gold hover:underline">
-          Voir les {totalModels - 4}+ autres modèles →
+<div className="mt-8 text-center">
+        
+          <a href="/register"
+          className="inline-flex items-center gap-1.5 text-sm text-gold hover:gap-2.5 transition-all">
+          Voir les {totalModels - 4}+ autres modèles <span aria-hidden>→</span>
         </a>
       </div>
     </section>
