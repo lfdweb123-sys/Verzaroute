@@ -2,72 +2,52 @@ import { MODELS_CATALOG } from "@/lib/models-catalog";
 import type { ProviderId } from "@/types";
 
 const PROVIDER_LABELS: Record<ProviderId, string> = {
-  openai: "OpenAI",
-  anthropic: "Anthropic",
-  google: "Google",
-  xai: "xAI",
-  deepseek: "DeepSeek",
-  mistral: "Mistral AI",
-  moonshot: "Moonshot AI (Kimi)",
-  minimax: "MiniMax",
-  zai: "Z.ai",
-  stepfun: "StepFun",
+  openai: "OpenAI", anthropic: "Anthropic", google: "Google", xai: "xAI",
+  deepseek: "DeepSeek", mistral: "Mistral AI", moonshot: "Moonshot AI (Kimi)",
+  minimax: "MiniMax", zai: "Z.ai", stepfun: "StepFun",
 };
 
-const PROVIDER_COLORS: Record<ProviderId, string> = {
-  openai: "from-emerald-500/20 to-emerald-500/0",
-  anthropic: "from-orange-500/20 to-orange-500/0",
-  google: "from-blue-500/20 to-blue-500/0",
-  xai: "from-slate-400/20 to-slate-400/0",
-  deepseek: "from-indigo-500/20 to-indigo-500/0",
-  mistral: "from-red-500/20 to-red-500/0",
-  moonshot: "from-purple-500/20 to-purple-500/0",
-  minimax: "from-pink-500/20 to-pink-500/0",
-  zai: "from-cyan-500/20 to-cyan-500/0",
-  stepfun: "from-yellow-500/20 to-yellow-500/0",
-};
+const FEATURED_IDS = ["GPT-5", "Claude Sonnet 5", "Gemini 2.5 Pro", "DeepSeek V3"];
 
 export function ModelsShowcase() {
+  const featured = MODELS_CATALOG.filter((m) => FEATURED_IDS.includes(m.displayName)).slice(0, 4);
+  const totalModels = MODELS_CATALOG.length;
+
   return (
-    <section id="modeles" className="mx-auto max-w-7xl px-6 py-24">
-      <div className="text-center mb-14">
-        <span className="inline-block rounded-full border border-gold/30 bg-gold/5 px-4 py-1 text-xs font-medium tracking-wide text-gold uppercase">
-          10 fournisseurs, un seul accès
+    <section id="modeles" className="mx-auto max-w-7xl px-5 sm:px-6 py-16 sm:py-20">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8 sm:mb-10">
+        <div>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">
+            Les meilleurs modèles <span className="gold-text">à portée de main</span>
+          </h2>
+          <p className="mt-2 sm:mt-3 text-sm sm:text-base text-white/60">
+            Pas d&apos;abonnement séparé, payez uniquement ce que vous utilisez.
+          </p>
+        </div>
+        <span className="self-start sm:self-auto shrink-0 rounded-full border border-gold/30 bg-gold/10 px-3 py-1.5 text-[11px] sm:text-xs font-medium text-gold">
+          {totalModels}+ MODÈLES CONNECTÉS
         </span>
-        <h2 className="mt-5 text-3xl md:text-5xl font-bold text-white">
-          Tous les meilleurs modèles IA, <span className="gold-text">une seule clé</span>
-        </h2>
-        <p className="mt-4 max-w-2xl mx-auto text-white/60">
-          VerzaRoute agrège GPT, Claude, Gemini, Grok, DeepSeek, Mistral, Kimi, MiniMax, Z.ai et StepFun.
-          Changez de modèle en changeant simplement un paramètre — votre code ne change pas.
-        </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {MODELS_CATALOG.map((model) => (
-          <div
-            key={model.displayName}
-            className={`card-glow relative overflow-hidden rounded-2xl border border-white/10 bg-obsidian-card p-6 transition-all bg-gradient-to-br ${PROVIDER_COLORS[model.provider]}`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-white/50">
-                {PROVIDER_LABELS[model.provider]}
-              </span>
-              <span className="rounded-full bg-gold/10 border border-gold/30 px-2.5 py-0.5 text-[11px] text-gold">
-                {(model.contextWindow / 1000).toFixed(0)}K ctx
-              </span>
-            </div>
-            <h3 className="text-lg font-semibold text-white mb-1.5">{model.displayName}</h3>
-            <p className="text-sm text-white/60 mb-4 leading-relaxed">{model.description}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {model.tags.map((tag) => (
-                <span key={tag} className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-white/50">
-                  {tag}
-                </span>
-              ))}
-            </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        {featured.map((model) => (
+          <div key={model.displayName} className="rounded-2xl border border-white/10 bg-obsidian-card p-5 card-glow transition-all">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
+              {PROVIDER_LABELS[model.provider]}
+            </span>
+            <h3 className="text-white font-semibold mt-1.5 mb-2">{model.displayName}</h3>
+            <p className="text-xs text-white/55 leading-relaxed mb-4 min-h-[48px]">{model.description}</p>
+            <p className="text-gold text-sm font-semibold">
+              ${model.inputPricePerMTokUsd.toFixed(2)} <span className="text-white/40 font-normal">/ 1M tokens</span>
+            </p>
           </div>
         ))}
+      </div>
+
+      <div className="mt-6 text-center">
+        <a href="/register" className="text-sm text-gold hover:underline">
+          Voir les {totalModels - 4}+ autres modèles →
+        </a>
       </div>
     </section>
   );
