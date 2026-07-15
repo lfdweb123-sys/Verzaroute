@@ -17,12 +17,8 @@ export function LandingNav() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-obsidian/85 backdrop-blur-md">
       <nav className="mx-auto max-w-7xl px-5 sm:px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <Image src="/icons/icon-192.png" alt="VerzaRoute" width={28} height={28} className="rounded-md" priority />
-          <span className="text-lg sm:text-xl font-extrabold">
-            <span className="text-white">Verza</span>
-            <span className="gold-text">Route</span>
-          </span>
+        <Link href="/" className="shrink-0">
+          <Image src="/icons/icon-192.png" alt="VerzaRoute" width={48} height={48} className="rounded-md" priority />
         </Link>
 
         <div className="hidden md:flex items-center gap-8 text-sm text-white/70">

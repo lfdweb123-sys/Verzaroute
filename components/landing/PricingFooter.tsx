@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image"; // Ajout de l'import nécessaire
 
 export function PricingCta() {
   return (
@@ -15,7 +16,7 @@ export function PricingCta() {
           <Link href="/register" className="w-full sm:w-auto rounded-xl bg-gold-gradient px-8 py-3.5 font-semibold text-obsidian shadow-gold hover:scale-[1.03] transition-transform">
             Commencer maintenant
           </Link>
-          <Link href="#comment-ca-marche" className="w-full sm:w-auto rounded-xl border border-white/15 px-8 py-3.5 font-semibold text-white/80 hover:border-gold/40 hover:text-white transition-colors">
+          <Link href="mailto:contact@verzaroute.com" className="w-full sm:w-auto rounded-xl border border-white/15 px-8 py-3.5 font-semibold text-white/80 hover:border-gold/40 hover:text-white transition-colors">
             Parler à un ingénieur
           </Link>
         </div>
@@ -42,14 +43,24 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-5 sm:px-6 py-10 sm:py-14">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 sm:gap-6 mb-10">
           <div className="col-span-2 sm:col-span-1">
-            <span className="text-lg font-extrabold">
-              <span className="text-white">Verza</span><span className="gold-text">Route</span>
-            </span>
-            <p className="mt-3 text-xs text-white/40 leading-relaxed max-w-[220px]">
+            {/* Remplacement du texte par le logo */}
+            <Link href="/" className="inline-block shrink-0">
+              <Image 
+                src="/icons/icon-192.png" 
+                alt="VerzaRoute Logo" 
+                width={48} 
+                height={48} 
+                className="rounded-md" 
+                priority 
+              />
+            </Link>
+            
+            <p className="mt-4 text-xs text-white/40 leading-relaxed max-w-[220px]">
               L&apos;infrastructure API qui connecte l&apos;Afrique aux modèles de fondation mondiaux.
               Propulsé par une ingénierie de pointe.
             </p>
           </div>
+          
           {columns.map((col) => (
             <div key={col.title}>
               <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-3">{col.title}</p>

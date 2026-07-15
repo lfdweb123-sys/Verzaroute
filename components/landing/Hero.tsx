@@ -6,12 +6,6 @@ export function Hero() {
     <section className="relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(212,175,55,0.14),transparent_60%)]" />
       <div className="relative mx-auto max-w-6xl px-5 sm:px-6 pt-14 sm:pt-20 md:pt-24 pb-14 sm:pb-20">
-        <div className="mb-6 sm:mb-8">
-          <span className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-[11px] sm:text-xs text-gold">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold animate-pulse" />
-            Maintenant disponible en zone CFA
-          </span>
-        </div>
 
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
           <div>
@@ -33,31 +27,31 @@ export function Hero() {
             </div>
           </div>
 
-              <div className="rounded-2xl border border-white/10 bg-obsidian-card overflow-hidden shadow-2xl self-stretch flex flex-col">
-                <div className="flex items-center gap-1.5 px-4 py-3 border-b border-white/10 bg-white/[0.02] shrink-0">
-                  <span className="h-2.5 w-2.5 rounded-full bg-red-500/60" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/60" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-green-500/60" />
-                  <span className="ml-3 text-[11px] text-white/30 font-mono">curl — verzaroute_request.sh</span>
-                </div>
-                <pre className="flex-1 p-5 sm:p-6 overflow-x-auto text-[12px] sm:text-[13px] font-mono leading-[1.9] text-white/70 whitespace-pre">
-              <span className="text-gold/80">curl</span> https://api.verzaroute.com/v1/chat/completions \
-                -H <span className="text-emerald-400">&quot;Authorization: Bearer $VERZA_KEY&quot;</span> \
-                -H <span className="text-emerald-400">&quot;Content-Type: application/json&quot;</span> \
-                -d <span className="text-white/50">&apos;</span>{"{"}
-                  &quot;model&quot;: <span className="text-emerald-400">&quot;claude-3-5-sonnet&quot;</span>,
-                  &quot;messages&quot;: [
-                    {"{"}
-                      &quot;role&quot;: <span className="text-emerald-400">&quot;user&quot;</span>,
-                      &quot;content&quot;: <span className="text-emerald-400">&quot;Hello world&quot;</span>
-                    {"}"}
-                  ],
-                  &quot;billing&quot;: <span className="text-emerald-400">&quot;cfa_wallet&quot;</span>
-                {"}"}<span className="text-white/50">&apos;</span>
-
+          <div className="rounded-2xl border border-white/10 bg-obsidian-card overflow-hidden shadow-2xl self-stretch flex flex-col">
+            <div className="flex items-center gap-1.5 px-4 py-3 border-b border-white/10 bg-white/[0.02] shrink-0">
+              <span className="h-2.5 w-2.5 rounded-full bg-red-500/60" />
+              <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/60" />
+              <span className="h-2.5 w-2.5 rounded-full bg-green-500/60" />
+              <span className="ml-3 text-[11px] text-white/30 font-mono">curl — verzaroute_request.sh</span>
+            </div>
+            <pre className="flex-1 p-5 sm:p-6 overflow-x-auto text-[12px] sm:text-[13px] font-mono leading-[1.9] text-white/70 whitespace-pre">
+              <span className="text-gold/80">curl</span> https://verzaroute.com/v1/chat/completions \{'\n'}
+              {'  '}-H <span className="text-emerald-400">&quot;Authorization: Bearer $VERZA_KEY&quot;</span> \{'\n'}
+              {'  '}-H <span className="text-emerald-400">&quot;Content-Type: application/json&quot;</span> \{'\n'}
+              {'  '}-d <span className="text-white/50">&apos;</span>{"{"}{'\n'}
+              {'    '}&quot;model&quot;: <span className="text-emerald-400">&quot;claude-3-5-sonnet&quot;</span>,{'\n'}
+              {'    '}&quot;messages&quot;: [{'\n'}
+              {'      '}{"{"}{'\n'}
+              {'        '}&quot;role&quot;: <span className="text-emerald-400">&quot;user&quot;</span>,{'\n'}
+              {'        '}&quot;content&quot;: <span className="text-emerald-400">&quot;Hello world&quot;</span>{'\n'}
+              {'      '}{"}"}{'\n'}
+              {'    '}]{'\n'},
+              {'    '}&quot;billing&quot;: <span className="text-emerald-400">&quot;cfa_wallet&quot;</span>{'\n'}
+              {"}"}<span className="text-white/50">&apos;</span>{'\n'}
+              {'\n'}
               <span className="text-white/30"># → réponse en moins de 300ms, débit automatique du solde FCFA</span>
-                </pre>
-              </div>
+            </pre>
+          </div>
         </div>
       </div>
     </section>
