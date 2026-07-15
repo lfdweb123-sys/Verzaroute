@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image"; // Ajout de l'import nécessaire
+import Image from "next/image";
 
 export function PricingCta() {
   return (
@@ -34,8 +34,8 @@ export function PricingCta() {
 export function Footer() {
   const columns = [
     { title: "Produit", links: [{ label: "Modèles", href: "#modeles" }, { label: "Documentation", href: "#" }, { label: "Statut", href: "#" }] },
-    { title: "Entreprise", links: [{ label: "À propos", href: "#" }, { label: "Blog", href: "#" }, { label: "Contact", href: "#" }] },
     { title: "Légal", links: [{ label: "Confidentialité", href: "#" }, { label: "CGU", href: "#" }] },
+    { title: "Entreprise", links: [{ label: "À propos", href: "#" }, { label: "Blog", href: "#" }, { label: "Contact", href: "#" }] },
   ];
 
   return (
@@ -43,7 +43,6 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-5 sm:px-6 py-10 sm:py-14">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 sm:gap-6 mb-10">
           <div className="col-span-2 sm:col-span-1">
-            {/* Remplacement du texte par le logo */}
             <Link href="/" className="inline-block shrink-0">
               <Image 
                 src="/icons/icon-192.png" 
