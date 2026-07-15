@@ -1,85 +1,81 @@
 rules_version = '2';
-
-/**
- * Règles de sécurité Firestore — VerzaRoute
- * Principe : les écritures sensibles (solde, clés API, modèles, réglages) passent
- * TOUJOURS par les API routes (Firebase Admin SDK, qui bypass ces règles),
- * jamais directement depuis le client. Ces règles ne servent qu'à protéger la LECTURE
- * directe faite par le dashboard (onSnapshot) et à bloquer toute écriture cliente non prévue.
- */
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAuth() { return request.auth != null; }
+    function isOwner(uid) { return isAuth() && request.auth.uid == uid; }
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(uid) {
-      return isSignedIn() && request.auth.uid == uid;
-    }
-
-    function isAdmin() {
-      return isSignedIn() &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    // --- Utilisateurs ---
-    match /users/{uid} {
-      allow read: if isOwner(uid) || isAdmin();
-      // Le client peut modifier uniquement son displayName (le solde est géré par l'API/Admin SDK)
-      allow update: if isOwner(uid) &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'updatedAt', 'photoURL']);
-      allow write: if isAdmin();
-      allow create: if false; // création uniquement via l'API (Admin SDK) au premier login
-
-      match /fcmTokens/{tokenId} {
-        allow read, write: if isOwner(uid);
-      }
-    }
-
-    // --- Clés API : jamais lisibles/écrivables directement par le client ---
-    match /apiKeys/{keyId} {
-      allow read, write: if isAdmin();
-      allow read: if false; // le hash ne doit jamais être lu par le client, même le propriétaire
-    }
-
-    // --- Historique d'utilisation : lecture seule par le propriétaire ---
-    match /usageLogs/{logId} {
-      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
-      allow write: if isAdmin(); // uniquement via l'API (Admin SDK)
-    }
-
-    // --- Transactions (achats, ajustements) ---
-    match /transactions/{txId} {
-      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
-      allow write: if isAdmin();
-    }
-
-    // --- Catalogue de modèles : lecture publique, écriture admin uniquement ---
-    match /models/{modelId} {
+    match /influencers/{uid} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid);
+      match /private/{doc} { allow read, write: if false; }
     }
-
-    // --- Réglages de la plateforme (thème, taux) : lecture publique pour appliquer le thème ---
-    match /settings/{docId} {
+    match /brands/{uid} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid);
+      match /private/{doc} { allow read, write: if false; }
     }
-
-    // --- Décaissements Verzapay : admin uniquement ---
-    match /payouts/{payoutId} {
-      allow read, write: if isAdmin();
+    match /campaigns/{cid} {
+      allow read: if true;
+      allow create: if false;
+      allow update: if isAuth() && (resource.data.influencer_id == request.auth.uid || resource.data.brand_id == request.auth.uid);
     }
-
-    // --- Événements webhook Verzapay bruts : admin uniquement (audit) ---
-    match /verzapayEvents/{eventId} {
-      allow read, write: if isAdmin();
+    match /campaign_redemptions/{rid} {
+      allow read: if isAuth() && (resource.data.influencer_id == request.auth.uid || resource.data.brand_id == request.auth.uid);
+      allow create: if false;
+      allow update: if false;
     }
-
-    // Tout le reste est refusé par défaut
-    match /{document=**} {
+    match /wallet_transactions/{tid} {
+      allow read: if isAuth() && (resource.data.influencer_id == request.auth.uid || resource.data.brand_id == request.auth.uid);
+      allow create: if false;
+      allow update: if false;
+    }
+    match /deposit_payments/{pid} {
+      allow read: if isAuth() && (resource.data.influencer_id == request.auth.uid || resource.data.brand_id == request.auth.uid);
+      allow create: if false;
+      allow update: if false;
+    }
+    match /email_campaigns/{eid} {
+      allow read: if isAuth() && resource.data.owner_id == request.auth.uid;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+    match /ai_usage/{uid} {
+      allow read: if isAuth() && resource.data.owner_id == request.auth.uid;
+      allow write: if false;
+    }
+    match /email_templates/{tid} {
+      allow read: if isAuth() && resource.data.owner_id == request.auth.uid;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+    match /admin_config/{doc} { allow read, write: if false; }
+    match /contact_lists/{lid} {
+      allow read: if isAuth() && resource.data.owner_id == request.auth.uid;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+    match /email_send_usage/{uid} {
+      allow read: if isAuth() && resource.data.owner_id == request.auth.uid;
+      allow write: if false;
+    }
+    match /artist_profiles/{uid} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /dedication_orders/{oid} {
+      allow read: if isAuth() && (resource.data.artistUid == request.auth.uid || resource.data.fanUid == request.auth.uid);
+      allow write: if false;
+    }
+    match /ai_song_orders/{sid} {
+      allow read: if isAuth() && resource.data.fanUid == request.auth.uid;
+      allow write: if false;
+    }
+    match /email_otps/{email} {
       allow read, write: if false;
     }
   }

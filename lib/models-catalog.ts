@@ -185,4 +185,35 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     modality: "image",
     pricePerImageUsd: 0.02,
   },
+
+
+
+{
+    provider: "xai",
+    displayName: "Grok Image",
+    description: "Modèle de génération d'image de xAI, style créatif et réactif.",
+    contextWindow: 0,
+    inputPricePerMTokUsd: 0,
+    outputPricePerMTokUsd: 0,
+    marginPercent: 25,
+    enabled: true,
+    tags: ["image", "génération", "créatif"],
+    modality: "image",
+    pricePerImageUsd: 0.02,
+  },
+
+  // --- Modèle de génération vidéo ---
+  {
+    provider: "google",
+    displayName: "Veo 3",
+    description: "Modèle de génération vidéo de Google, à partir d'un simple prompt texte. Génération asynchrone (30s à quelques minutes).",
+    contextWindow: 0,
+    inputPricePerMTokUsd: 0,
+    outputPricePerMTokUsd: 0,
+    marginPercent: 25,
+    enabled: true,
+    tags: ["vidéo", "génération", "asynchrone"],
+    modality: "video",
+    pricePerVideoSecondUsd: 0.35,
+  },
 ];

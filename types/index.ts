@@ -35,8 +35,9 @@ export interface AiModel {
   enabled: boolean;
   tags: string[];
   logo?: string;
-  modality?: "text" | "image";
+  modality?: "text" | "image" | "video";
   pricePerImageUsd?: number;
+  pricePerVideoSecondUsd?: number;
 }
 
 export type ProviderId =
@@ -104,4 +105,23 @@ export interface PlatformSettings {
   fcfaToUsdRate: number;
   minPurchaseFcfa: number;
   theme: PlatformTheme;
+}
+
+export type VideoJobStatus = "pending" | "processing" | "ready" | "failed";
+
+export interface VideoJob {
+  id: string;
+  uid: string;
+  apiKeyId: string;
+  model: string;
+  provider: ProviderId;
+  prompt: string;
+  status: VideoJobStatus;
+  providerOperationId?: string;
+  videoUrl?: string;
+  durationSeconds?: number;
+  creditsCharged?: number;
+  errorMessage?: string;
+  createdAt: number;
+  updatedAt: number;
 }

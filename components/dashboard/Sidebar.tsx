@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/models", label: "Modèles", icon: Sparkles },
   { href: "/dashboard/chat", label: "Discuter", icon: MessageSquare },
   { href: "/dashboard/images", label: "Générer une image", icon: ImagePlus },
+  { href: "/dashboard/videos", label: "Générer une vidéo", icon: Film },
   { href: "/dashboard/api-keys", label: "Clés API", icon: KeyRound },
   { href: "/dashboard/billing", label: "Crédits & paiement", icon: Wallet },
   { href: "/dashboard/history", label: "Historique", icon: History },

@@ -28,6 +28,18 @@ export function computeImageCreditsCharged(params: {
   return Math.max(1, Math.ceil(credits));
 }
 
+export function computeVideoCreditsCharged(params: {
+  model: AiModel;
+  durationSeconds: number;
+  creditToUsdRate: number;
+}): number {
+  const { model, durationSeconds, creditToUsdRate } = params;
+  const priceUsd = (model.pricePerVideoSecondUsd ?? 0) * durationSeconds;
+  const priceWithMarginUsd = priceUsd * (1 + model.marginPercent / 100);
+  const credits = priceWithMarginUsd / creditToUsdRate;
+  return Math.max(1, Math.ceil(credits));
+}
+
 export async function debitCredits(uid: string, amount: number, description: string): Promise<void> {
   const userRef = adminDb.collection("users").doc(uid);
   await adminDb.runTransaction(async (tx) => {
