@@ -200,8 +200,9 @@ function ChatContent() {
 
       {/* Hauteur adaptative : tient compte de la topbar desktop et du bottom menu mobile */}
       <div className="flex flex-col h-[calc(100vh-4rem)] md:h-[calc(100vh-4rem)]">
-        {/* Sélecteur de modèle - plus compact sur mobile */}
-        <div className="border-b border-white/10 p-2 sm:p-3 md:p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 bg-obsidian-card">
+        
+        {/* Sélecteur de modèle - pt-20 sur mobile compense la topbar cachée */}
+        <div className="border-b border-white/10 pt-20 sm:pt-3 md:pt-4 p-2 sm:p-3 md:p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 bg-obsidian-card">
           <div className="flex items-center gap-2 sm:gap-3">
             <label className="text-xs sm:text-sm text-white/60 shrink-0">Modèle :</label>
             <select
@@ -234,7 +235,6 @@ function ChatContent() {
         >
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-center text-white/40 px-4">
-              {/* Correction: utilisation de className pour la taille responsive */}
               <Bot size={32} className="mb-2 sm:mb-3 text-gold/50 sm:w-10 sm:h-10" />
               <p className="text-xs sm:text-sm">
                 Commence une conversation avec {currentModel?.displayName ?? "un modèle"}.
@@ -249,7 +249,6 @@ function ChatContent() {
             <div key={i} className={cn("flex gap-2 sm:gap-3", msg.role === "user" ? "justify-end" : "justify-start")}>
               {msg.role === "assistant" && (
                 <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
-                  {/* Correction: sm:w-4 sm:h-4 remplace sm:size={16} */}
                   <Bot size={14} className="text-gold sm:w-4 sm:h-4" />
                 </div>
               )}
@@ -266,7 +265,6 @@ function ChatContent() {
               </div>
               {msg.role === "user" && (
                 <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 rounded-full bg-white/10 flex items-center justify-center">
-                  {/* Correction: sm:w-4 sm:h-4 remplace sm:size={16} */}
                   <UserIcon size={14} className="text-white/70 sm:w-4 sm:h-4" />
                 </div>
               )}
@@ -276,11 +274,9 @@ function ChatContent() {
           {loading && (
             <div className="flex gap-2 sm:gap-3 justify-start">
               <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
-                {/* Correction: sm:w-4 sm:h-4 remplace sm:size={16} */}
                 <Bot size={14} className="text-gold sm:w-4 sm:h-4" />
               </div>
               <div className="rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 bg-obsidian-card border border-white/10">
-                {/* Correction: sm:w-4 sm:h-4 remplace sm:size={16} */}
                 <Loader2 size={14} className="animate-spin text-white/50 sm:w-4 sm:h-4" />
               </div>
             </div>
@@ -315,7 +311,6 @@ function ChatContent() {
                   className="text-white/40 hover:text-red-400 shrink-0 p-0.5" 
                   aria-label="Retirer"
                 >
-                  {/* Correction: sm:w-3.5 sm:h-3.5 remplace sm:size={13} */}
                   <X size={12} className="sm:w-3.5 sm:h-3.5" />
                 </button>
               </div>
@@ -323,8 +318,8 @@ function ChatContent() {
           </div>
         )}
 
-        {/* Zone de saisie */}
-        <div className="border-t border-white/10 p-2 sm:p-3 md:p-4 flex items-end gap-2 sm:gap-2 md:gap-3 pb-20 sm:pb-20 md:pb-4 bg-obsidian-card">
+        {/* Zone de saisie - pb-16 sur mobile pour remonter sans cacher derrière le bottom menu */}
+        <div className="border-t border-white/10 p-2 sm:p-3 md:p-4 flex items-end gap-2 sm:gap-2 md:gap-3 pb-16 sm:pb-4 md:pb-4 bg-obsidian-card">
           <input
             ref={fileInputRef}
             type="file"
@@ -340,7 +335,6 @@ function ChatContent() {
             aria-label="Joindre un fichier"
             title="Joindre une image ou un document"
           >
-            {/* Correction: sm:w-[18px] sm:h-[18px] remplace sm:size={18} */}
             <Paperclip size={16} className="sm:w-[18px] sm:h-[18px]" />
           </button>
           <textarea
@@ -358,7 +352,6 @@ function ChatContent() {
             className="shrink-0 rounded-xl bg-gold-gradient p-2 sm:p-2.5 md:p-3 text-obsidian hover:scale-[1.05] transition-transform disabled:opacity-40 disabled:hover:scale-100"
             aria-label="Envoyer"
           >
-            {/* Correction: sm:w-[18px] sm:h-[18px] remplace sm:size={18} */}
             <Send size={16} className="sm:w-[18px] sm:h-[18px]" />
           </button>
         </div>
