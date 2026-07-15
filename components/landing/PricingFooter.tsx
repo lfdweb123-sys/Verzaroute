@@ -33,9 +33,28 @@ export function PricingCta() {
 
 export function Footer() {
   const columns = [
-    { title: "Produit", links: [{ label: "Modèles", href: "#modeles" }, { label: "Documentation", href: "#" }, { label: "Statut", href: "#" }] },
-    { title: "Légal", links: [{ label: "Confidentialité", href: "#" }, { label: "CGU", href: "#" }] },
-    { title: "Entreprise", links: [{ label: "À propos", href: "#" }, { label: "Blog", href: "#" }, { label: "Contact", href: "#" }] },
+    { 
+      title: "Produit", 
+      links: [
+        { label: "Modèles", href: "#modeles" }, 
+        { label: "Documentation", href: "/docs" }, 
+        { label: "Statut", href: "/status" }
+      ] 
+    },
+    { 
+      title: "Légal", 
+      links: [
+        { label: "Confidentialité", href: "/privacy" }, 
+        { label: "CGU", href: "/terms" }
+      ] 
+    },
+    { 
+      title: "Entreprise", 
+      links: [
+        { label: "À propos", href: "/about" }, 
+        { label: "Contact", href: "mailto:contact@verzaroute.com" }
+      ] 
+    },
   ];
 
   return (
@@ -44,7 +63,7 @@ export function Footer() {
         {/* Grille responsive : 1 col mobile → 2 cols tablette → 4 cols desktop */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
           
-          {/* Colonne Logo + Description (prend toute la largeur sur mobile/tablette, 1/4 sur desktop) */}
+          {/* Colonne Logo + Description */}
           <div className="sm:col-span-2 lg:col-span-1">
             <Link href="/" className="inline-block shrink-0">
               <Image 
@@ -70,7 +89,15 @@ export function Footer() {
               <ul className="space-y-2">
                 {col.links.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="text-sm text-white/60 hover:text-gold transition-colors">{l.label}</Link>
+                    {l.href.startsWith("mailto") ? (
+                      <a href={l.href} className="text-sm text-white/60 hover:text-gold transition-colors">
+                        {l.label}
+                      </a>
+                    ) : (
+                      <Link href={l.href} className="text-sm text-white/60 hover:text-gold transition-colors">
+                        {l.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
