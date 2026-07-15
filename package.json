@@ -1,0 +1,47 @@
+{
+  "name": "verzaroute",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "set-admin": "tsx scripts/setAdmin.ts",
+    "prebuild": "node scripts/generate-sw-config.js"
+  },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "firebase": "10.12.4",
+    "firebase-admin": "12.3.0",
+    "tailwind-merge": "2.4.0",
+    "clsx": "2.1.1",
+    "class-variance-authority": "0.7.0",
+    "lucide-react": "0.408.0",
+    "recharts": "2.12.7",
+    "@radix-ui/react-dialog": "1.1.1",
+    "@radix-ui/react-dropdown-menu": "2.1.1",
+    "@radix-ui/react-tabs": "1.1.0",
+    "@radix-ui/react-switch": "1.1.0",
+    "@radix-ui/react-label": "2.1.0",
+    "@radix-ui/react-select": "2.1.1",
+    "@radix-ui/react-toast": "1.2.1",
+    "@radix-ui/react-avatar": "1.1.0",
+    "zod": "3.23.8",
+    "nanoid": "5.0.7"
+  },
+  "devDependencies": {
+    "typescript": "5.5.4",
+    "@types/node": "20.14.13",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "tailwindcss": "3.4.7",
+    "postcss": "8.4.40",
+    "autoprefixer": "10.4.19",
+    "tsx": "4.16.5",
+    "eslint": "8.57.0",
+    "eslint-config-next": "14.2.5"
+  }
+}

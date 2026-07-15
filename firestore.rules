@@ -1,0 +1,86 @@
+rules_version = '2';
+
+/**
+ * Règles de sécurité Firestore — VerzaRoute
+ * Principe : les écritures sensibles (solde, clés API, modèles, réglages) passent
+ * TOUJOURS par les API routes (Firebase Admin SDK, qui bypass ces règles),
+ * jamais directement depuis le client. Ces règles ne servent qu'à protéger la LECTURE
+ * directe faite par le dashboard (onSnapshot) et à bloquer toute écriture cliente non prévue.
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // --- Utilisateurs ---
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      // Le client peut modifier uniquement son displayName (le solde est géré par l'API/Admin SDK)
+      allow update: if isOwner(uid) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'updatedAt', 'photoURL']);
+      allow write: if isAdmin();
+      allow create: if false; // création uniquement via l'API (Admin SDK) au premier login
+
+      match /fcmTokens/{tokenId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // --- Clés API : jamais lisibles/écrivables directement par le client ---
+    match /apiKeys/{keyId} {
+      allow read, write: if isAdmin();
+      allow read: if false; // le hash ne doit jamais être lu par le client, même le propriétaire
+    }
+
+    // --- Historique d'utilisation : lecture seule par le propriétaire ---
+    match /usageLogs/{logId} {
+      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow write: if isAdmin(); // uniquement via l'API (Admin SDK)
+    }
+
+    // --- Transactions (achats, ajustements) ---
+    match /transactions/{txId} {
+      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // --- Catalogue de modèles : lecture publique, écriture admin uniquement ---
+    match /models/{modelId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // --- Réglages de la plateforme (thème, taux) : lecture publique pour appliquer le thème ---
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // --- Décaissements Verzapay : admin uniquement ---
+    match /payouts/{payoutId} {
+      allow read, write: if isAdmin();
+    }
+
+    // --- Événements webhook Verzapay bruts : admin uniquement (audit) ---
+    match /verzapayEvents/{eventId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Tout le reste est refusé par défaut
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
