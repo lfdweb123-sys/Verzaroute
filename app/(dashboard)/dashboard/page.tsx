@@ -36,10 +36,18 @@ export default function DashboardHomePage() {
       setBalance(snap.data()?.creditsBalance ?? 0);
     });
 
-    const unsubKeys = onSnapshot(
-      query(collection(db, "apiKeys"), where("uid", "==", user.uid), where("revoked", "==", false)),
-      (snap) => setKeysCount(snap.size)
-    );
+    // IMPORTANT : `apiKeys` contient le hash des clés API et est volontairement
+    // bloqué en lecture directe par les Firestore Security Rules, même pour le
+    // propriétaire. On passe par l'API serveur /api/v1/keys (Firebase Admin SDK)
+    // au lieu d'un onSnapshot client, sinon Firestore renvoie en boucle
+    // "permission-denied".
+    fetch("/api/v1/keys")
+      .then((res) => res.json())
+      .then((data) => {
+        const activeCount = (data.keys ?? []).filter((k: { revoked: boolean }) => !k.revoked).length;
+        setKeysCount(activeCount);
+      })
+      .catch(() => setKeysCount(0));
 
     const unsubLogs = onSnapshot(
       query(collection(db, "usageLogs"), where("uid", "==", user.uid), orderBy("createdAt", "desc"), limit(8)),
@@ -48,7 +56,6 @@ export default function DashboardHomePage() {
 
     return () => {
       unsubUser();
-      unsubKeys();
       unsubLogs();
     };
   }, [user]);
@@ -57,12 +64,10 @@ export default function DashboardHomePage() {
 
   return (
     <>
-      {/* Masqué sur mobile, visible uniquement sur desktop */}
       <div className="hidden md:block">
         <DashboardTopBar title="Vue d'ensemble" />
       </div>
 
-      {/* pb-24 compense le bottom menu sur mobile, pt-4 remplace l'espace de la topbar cachée */}
       <div className="p-4 sm:p-6 md:p-8 pb-24 md:pb-8 space-y-6 md:space-y-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
           <StatCard icon={Wallet} label="Solde de crédits" value={balance === null ? "..." : balance.toLocaleString("fr-FR")} href="/dashboard/billing" />
