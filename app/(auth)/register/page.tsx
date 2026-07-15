@@ -31,6 +31,8 @@ export default function RegisterPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    alert("Bouton cliqué, email: " + email); // ligne de debug temporaire
+    
     setError(null);
     if (password !== confirmPassword) {
       setError("Les mots de passe ne correspondent pas.");

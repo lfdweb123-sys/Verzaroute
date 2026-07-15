@@ -41,8 +41,8 @@ export function Footer() {
   return (
     <footer className="border-t border-white/10 mt-6">
       <div className="mx-auto max-w-7xl px-5 sm:px-6 py-10 sm:py-14">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 sm:gap-6 mb-10">
-          <div className="col-span-2 sm:col-span-1">
+        <div className="flex flex-col gap-8 mb-10">
+          <div className="max-w-[280px]">
             <Link href="/" className="inline-block shrink-0">
               <Image 
                 src="/icons/icon-192.png" 
@@ -54,24 +54,26 @@ export function Footer() {
               />
             </Link>
             
-            <p className="mt-4 text-xs text-white/40 leading-relaxed max-w-[220px]">
+            <p className="mt-4 text-xs text-white/40 leading-relaxed">
               L&apos;infrastructure API qui connecte l&apos;Afrique aux modèles de fondation mondiaux.
               Propulsé par une ingénierie de pointe.
             </p>
           </div>
           
-          {columns.map((col) => (
-            <div key={col.title}>
-              <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-3">{col.title}</p>
-              <ul className="space-y-2">
-                {col.links.map((l) => (
-                  <li key={l.label}>
-                    <Link href={l.href} className="text-sm text-white/60 hover:text-gold transition-colors">{l.label}</Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div className="flex flex-col gap-8">
+            {columns.map((col) => (
+              <div key={col.title}>
+                <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-3">{col.title}</p>
+                <ul className="space-y-2">
+                  {col.links.map((l) => (
+                    <li key={l.label}>
+                      <Link href={l.href} className="text-sm text-white/60 hover:text-gold transition-colors">{l.label}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-white/10">
