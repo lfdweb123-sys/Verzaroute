@@ -138,9 +138,9 @@ export function DashboardSidebar() {
         </div>
       )}
 
-      {/* Sidebar Desktop */}
+      {/* Sidebar Desktop FIXÉE - ne scroll plus avec la page */}
       <aside className={cn(
-        "hidden md:flex md:flex-col shrink-0 border-r border-white/10 bg-obsidian-card min-h-screen p-5 transition-all duration-300 relative",
+        "hidden md:flex md:flex-col fixed top-0 left-0 h-screen shrink-0 border-r border-white/10 bg-obsidian-card p-5 transition-all duration-300 z-30",
         isCollapsed ? "w-20" : "w-64"
       )}>
         <button
