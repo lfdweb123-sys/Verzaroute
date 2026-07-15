@@ -23,10 +23,13 @@ export default function ApiKeysPage() {
 
   const fetchKeys = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/v1/keys");
-    const data = await res.json();
-    setKeys(data.keys ?? []);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/v1/keys");
+      const data = await res.json();
+      if (res.ok) setKeys(data.keys ?? []);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -70,29 +73,46 @@ export default function ApiKeysPage() {
 
   return (
     <>
-      <DashboardTopBar title="Clés API" />
-      <div className="p-6 md:p-8 space-y-6 max-w-8xl">
+      {/* Masqué sur mobile, visible uniquement sur desktop */}
+      <div className="hidden md:block">
+        <DashboardTopBar title="Clés API" />
+      </div>
+
+      {/* pb-24 compense le bottom menu sur mobile, max-w-3xl mx-auto centre le contenu */}
+      <div className="p-4 sm:p-6 md:p-8 pb-24 md:pb-8 space-y-4 sm:space-y-6 max-w-3xl mx-auto">
+        
+        {/* Bannière de clé révélée */}
         {revealedKey && (
-          <div className="rounded-2xl border border-gold/30 bg-gold/5 p-5">
-            <div className="flex items-center gap-2 text-gold mb-2">
-              <AlertTriangle size={16} />
-              <span className="text-sm font-semibold">Copiez cette clé maintenant — elle ne sera plus jamais affichée</span>
+          <div className="rounded-2xl border border-gold/30 bg-gold/5 p-4 sm:p-5 animate-fade-in">
+            <div className="flex items-start gap-2 text-gold mb-3">
+              <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+              <span className="text-sm font-semibold leading-snug">
+                Copiez cette clé maintenant — elle ne sera plus jamais affichée
+              </span>
             </div>
-            <div className="flex items-center gap-2 rounded-lg bg-obsidian border border-white/10 p-3 font-mono text-sm text-white break-all">
+            <div className="flex items-center gap-2 rounded-lg bg-obsidian border border-white/10 p-3 font-mono text-xs sm:text-sm text-white break-all">
               <span className="flex-1">{revealedKey}</span>
-              <button onClick={() => copyToClipboard(revealedKey)} className="shrink-0 text-gold hover:text-gold-light">
+              <button 
+                onClick={() => copyToClipboard(revealedKey)} 
+                className="shrink-0 p-1 text-gold hover:text-gold-light transition-colors"
+                aria-label="Copier la clé"
+              >
                 {copied ? <Check size={16} /> : <Copy size={16} />}
               </button>
             </div>
-            <button onClick={() => setRevealedKey(null)} className="mt-3 text-xs text-white/50 hover:text-white">
+            <button 
+              onClick={() => setRevealedKey(null)} 
+              className="mt-3 text-xs text-white/50 hover:text-white transition-colors"
+            >
               J'ai copié ma clé, fermer
             </button>
           </div>
         )}
 
-        <div className="rounded-2xl border border-white/10 bg-obsidian-card p-6">
+        {/* Formulaire de création */}
+        <div className="rounded-2xl border border-white/10 bg-obsidian-card p-4 sm:p-6">
           <h2 className="text-white font-semibold mb-4">Créer une nouvelle clé</h2>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <input
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
@@ -102,7 +122,7 @@ export default function ApiKeysPage() {
             <button
               onClick={handleCreate}
               disabled={creating}
-              className="flex items-center gap-2 rounded-lg bg-gold-gradient px-5 py-2.5 font-semibold text-obsidian hover:scale-[1.02] transition-transform disabled:opacity-60"
+              className="flex items-center justify-center gap-2 rounded-lg bg-gold-gradient px-5 py-2.5 font-semibold text-obsidian hover:scale-[1.02] transition-transform disabled:opacity-60 w-full sm:w-auto shrink-0"
             >
               <Plus size={16} />
               {creating ? "Création..." : "Générer"}
@@ -110,7 +130,8 @@ export default function ApiKeysPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-obsidian-card p-6">
+        {/* Liste des clés */}
+        <div className="rounded-2xl border border-white/10 bg-obsidian-card p-4 sm:p-6">
           <h2 className="text-white font-semibold mb-4">Vos clés</h2>
           {loading ? (
             <p className="text-white/50 text-sm">Chargement...</p>
@@ -121,24 +142,25 @@ export default function ApiKeysPage() {
               {keys.map((k) => (
                 <div
                   key={k.id}
-                  className="flex items-center justify-between rounded-xl border border-white/10 p-4"
+                  className="flex items-center justify-between rounded-xl border border-white/10 p-3 sm:p-4 gap-3"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-gold/10 border border-gold/30 flex items-center justify-center">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-9 w-9 shrink-0 rounded-lg bg-gold/10 border border-gold/30 flex items-center justify-center">
                       <KeyRound size={16} className="text-gold" />
                     </div>
-                    <div>
-                      <p className="text-white text-sm font-medium">{k.label}</p>
-                      <p className="text-white/40 text-xs font-mono">{k.prefix}••••••••••</p>
+                    <div className="min-w-0">
+                      <p className="text-white text-sm font-medium truncate">{k.label}</p>
+                      <p className="text-white/40 text-xs font-mono truncate">{k.prefix}••••••••••</p>
                     </div>
                   </div>
                   {k.revoked ? (
-                    <span className="text-xs text-red-400">Révoquée</span>
+                    <span className="text-xs text-red-400 shrink-0">Révoquée</span>
                   ) : (
                     <button
                       onClick={() => handleRevoke(k.id)}
-                      className="text-white/40 hover:text-red-400 transition-colors"
+                      className="shrink-0 p-2 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                       title="Révoquer"
+                      aria-label={`Révoquer la clé ${k.label}`}
                     >
                       <Trash2 size={16} />
                     </button>

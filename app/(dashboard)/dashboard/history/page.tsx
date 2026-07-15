@@ -6,6 +6,7 @@ import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { DashboardTopBar } from "@/components/dashboard/TopBar";
 import type { UsageLog } from "@/types";
+import { CheckCircle2, XCircle } from "lucide-react";
 
 export default function HistoryPage() {
   const { user } = useAuth();
@@ -27,9 +28,76 @@ export default function HistoryPage() {
 
   return (
     <>
-      <DashboardTopBar title="Historique des appels" />
-      <div className="p-6 md:p-8">
-        <div className="rounded-2xl border border-white/10 bg-obsidian-card overflow-x-auto">
+      {/* Masqué sur mobile, visible uniquement sur desktop */}
+      <div className="hidden md:block">
+        <DashboardTopBar title="Historique des appels" />
+      </div>
+
+      {/* pb-24 compense le bottom menu sur mobile, pt-4 remplace l'espace de la topbar cachée */}
+      <div className="p-4 sm:p-6 md:p-8 pb-24 md:pb-8">
+        {/* ===== VUE MOBILE : cartes empilées ===== */}
+        <div className="sm:hidden space-y-3">
+          {logs.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-obsidian-card p-6 text-center text-white/40 text-sm">
+              Aucun appel effectué pour le moment.
+            </div>
+          ) : (
+            logs.map((log) => (
+              <div
+                key={log.id}
+                className="rounded-2xl border border-white/10 bg-obsidian-card p-4 space-y-3"
+              >
+                {/* Ligne 1 : Date + Statut */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-white/50">
+                    {new Date(log.createdAt).toLocaleString("fr-FR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                  <span
+                    className={
+                      log.status === "success"
+                        ? "inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md"
+                        : "inline-flex items-center gap-1 text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded-md"
+                    }
+                  >
+                    {log.status === "success" ? (
+                      <CheckCircle2 size={12} />
+                    ) : (
+                      <XCircle size={12} />
+                    )}
+                    {log.status === "success" ? "Succès" : "Échec"}
+                  </span>
+                </div>
+
+                {/* Ligne 2 : Modèle */}
+                <div>
+                  <p className="text-white font-semibold text-sm">{log.model}</p>
+                  <p className="text-xs text-white/40 capitalize">{log.provider}</p>
+                </div>
+
+                {/* Ligne 3 : Tokens + Coût */}
+                <div className="flex items-center justify-between pt-2 border-t border-white/5 text-xs">
+                  <div>
+                    <span className="text-white/40">Tokens </span>
+                    <span className="text-white/70">
+                      {log.inputTokens} / {log.outputTokens}
+                    </span>
+                  </div>
+                  <div className="text-gold font-semibold">
+                    {log.creditsCharged} crédits
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* ===== VUE DESKTOP : tableau classique ===== */}
+        <div className="hidden sm:block rounded-2xl border border-white/10 bg-obsidian-card overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-white/50">
@@ -54,7 +122,7 @@ export default function HistoryPage() {
                   <td className="p-4 text-white/70 whitespace-nowrap">
                     {new Date(log.createdAt).toLocaleString("fr-FR")}
                   </td>
-                  <td className="p-4 text-white">{log.model}</td>
+                  <td className="p-4 text-white font-medium">{log.model}</td>
                   <td className="p-4 text-white/60 capitalize">{log.provider}</td>
                   <td className="p-4 text-white/60">
                     {log.inputTokens} / {log.outputTokens}
@@ -64,10 +132,15 @@ export default function HistoryPage() {
                     <span
                       className={
                         log.status === "success"
-                          ? "text-emerald-400 text-xs bg-emerald-500/10 px-2 py-1 rounded-md"
-                          : "text-red-400 text-xs bg-red-500/10 px-2 py-1 rounded-md"
+                          ? "inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md"
+                          : "inline-flex items-center gap-1 text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded-md"
                       }
                     >
+                      {log.status === "success" ? (
+                        <CheckCircle2 size={12} />
+                      ) : (
+                        <XCircle size={12} />
+                      )}
                       {log.status === "success" ? "Succès" : "Échec"}
                     </span>
                   </td>

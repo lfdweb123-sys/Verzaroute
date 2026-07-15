@@ -88,24 +88,28 @@ function ChatContent() {
 
   return (
     <>
+      {/* TopBar masquée sur mobile, visible uniquement sur desktop */}
       <DashboardTopBar title="Discuter avec un modèle" />
-      <div className="flex flex-col h-[calc(100vh-4rem)]">
-        <div className="border-b border-white/10 p-4 flex items-center gap-3">
-          <label className="text-sm text-white/60 shrink-0">Modèle :</label>
-          <select
-            value={selectedModel}
-            onChange={(e) => {
-              setSelectedModel(e.target.value);
-              setMessages([]);
-            }}
-            className="rounded-lg bg-obsidian-card border border-white/15 px-3 py-2 text-sm text-white outline-none focus:border-gold/50"
-          >
-            {models.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.displayName}
-              </option>
-            ))}
-          </select>
+      <div className="flex flex-col h-[calc(100vh-4rem)] md:h-[calc(100vh-4rem)]">
+        {/* Sélecteur de modèle - plus compact sur mobile */}
+        <div className="border-b border-white/10 p-3 md:p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-3">
+            <label className="text-sm text-white/60 shrink-0">Modèle :</label>
+            <select
+              value={selectedModel}
+              onChange={(e) => {
+                setSelectedModel(e.target.value);
+                setMessages([]);
+              }}
+              className="flex-1 sm:flex-none rounded-lg bg-obsidian-card border border-white/15 px-3 py-2 text-sm text-white outline-none focus:border-gold/50"
+            >
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.displayName}
+                </option>
+              ))}
+            </select>
+          </div>
           {currentModel && (
             <span className="text-xs text-white/40 hidden sm:inline">
               ${currentModel.inputPricePerMTokUsd.toFixed(2)} / ${currentModel.outputPricePerMTokUsd.toFixed(2)} par 1M tokens
@@ -113,11 +117,12 @@ function ChatContent() {
           )}
         </div>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+        {/* Zone de messages */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 md:p-6 space-y-3 md:space-y-4 pb-24 md:pb-4">
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-center text-white/40">
               <Bot size={40} className="mb-3 text-gold/50" />
-              <p className="text-sm">Commence une conversation avec {currentModel?.displayName ?? "un modèle"}.</p>
+              <p className="text-sm px-4">Commence une conversation avec {currentModel?.displayName ?? "un modèle"}.</p>
             </div>
           )}
 
@@ -130,7 +135,7 @@ function ChatContent() {
               )}
               <div
                 className={cn(
-                  "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap",
+                  "max-w-[85%] sm:max-w-[80%] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-sm leading-relaxed whitespace-pre-wrap",
                   msg.role === "user" ? "bg-gold-gradient text-obsidian font-medium" : "bg-obsidian-card border border-white/10 text-white/85"
                 )}
               >
@@ -161,19 +166,20 @@ function ChatContent() {
 
         {error && <p className="px-4 md:px-6 text-sm text-red-400">{error}</p>}
 
-        <div className="border-t border-white/10 p-4 flex items-end gap-3">
+        {/* Zone de saisie - padding bottom pour le menu mobile */}
+        <div className="border-t border-white/10 p-3 md:p-4 flex items-end gap-2 md:gap-3 pb-20 md:pb-4">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Écris ton message... (Entrée pour envoyer, Maj+Entrée pour une nouvelle ligne)"
+            placeholder="Écris ton message..."
             rows={1}
-            className="flex-1 resize-none rounded-xl border border-white/15 bg-obsidian-card px-4 py-3 text-sm text-white outline-none focus:border-gold/50 transition-colors max-h-32"
+            className="flex-1 resize-none rounded-xl border border-white/15 bg-obsidian-card px-3 md:px-4 py-2.5 md:py-3 text-sm text-white outline-none focus:border-gold/50 transition-colors max-h-32"
           />
           <button
             onClick={handleSend}
             disabled={loading || !input.trim() || !selectedModel}
-            className="shrink-0 rounded-xl bg-gold-gradient p-3 text-obsidian hover:scale-[1.05] transition-transform disabled:opacity-40 disabled:hover:scale-100"
+            className="shrink-0 rounded-xl bg-gold-gradient p-2.5 md:p-3 text-obsidian hover:scale-[1.05] transition-transform disabled:opacity-40 disabled:hover:scale-100"
             aria-label="Envoyer"
           >
             <Send size={18} />
