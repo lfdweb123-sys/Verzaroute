@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image"; // Ajout de l'import nécessaire
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, KeyRound, History, Wallet, User, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -20,11 +21,16 @@ export function DashboardSidebar() {
 
   return (
     <aside className="hidden md:flex md:flex-col w-64 shrink-0 border-r border-white/10 bg-obsidian-card min-h-screen p-5">
-      <Link href="/" className="flex items-center gap-2 mb-10 px-2">
-        <span className="text-xl font-extrabold">
-          <span className="gold-text">Verza</span>
-          <span className="text-white">Route</span>
-        </span>
+      {/* Logo cliquable vers l'accueil */}
+      <Link href="/" className="flex items-center mb-10 px-2">
+        <Image 
+          src="/icons/icon-192.png" 
+          alt="VerzaRoute Logo" 
+          width={48} 
+          height={48} 
+          className="rounded-md" 
+          priority 
+        />
       </Link>
 
       <nav className="flex-1 space-y-1">

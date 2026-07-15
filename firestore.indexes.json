@@ -31,13 +31,6 @@
         { "fieldPath": "type", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "transactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "verzapayPaymentId", "order": "ASCENDING" }
-      ]
     }
   ],
   "fieldOverrides": []
