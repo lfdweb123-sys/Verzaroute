@@ -18,7 +18,6 @@ const NAV_ITEMS = [
   { href: "/dashboard/profile", label: "Profil", icon: User },
 ];
 
-// Sélection des éléments les plus importants pour le menu du bas sur mobile
 const BOTTOM_NAV_ITEMS = [
   { href: "/dashboard", label: "Accueil", icon: LayoutDashboard },
   { href: "/dashboard/chat", label: "Chat", icon: MessageSquare },
@@ -32,7 +31,6 @@ export function DashboardSidebar() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Contenu mutualisé entre la sidebar desktop et le drawer mobile
   const SidebarContent = ({ isDesktop = false }: { isDesktop?: boolean }) => (
     <>
       <div className={cn(
@@ -49,7 +47,6 @@ export function DashboardSidebar() {
             priority 
           />
         </Link>
-        {/* Bouton fermer uniquement visible sur mobile */}
         <button 
           onClick={() => setIsMobileSidebarOpen(false)} 
           className="md:hidden text-white/60 hover:text-white p-2"
@@ -66,9 +63,7 @@ export function DashboardSidebar() {
             <Link
               key={href}
               href={href}
-              onClick={() => {
-                setIsMobileSidebarOpen(false);
-              }}
+              onClick={() => setIsMobileSidebarOpen(false)}
               className={cn(
                 "flex items-center rounded-lg px-3 py-2.5 text-sm transition-colors group relative",
                 isDesktop && isCollapsed ? "justify-center" : "gap-3",
@@ -107,7 +102,7 @@ export function DashboardSidebar() {
 
   return (
     <>
-      {/* 1. Barre mobile supérieure : logo à gauche, menu à droite */}
+      {/* Barre mobile supérieure */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-obsidian-card border-b border-white/10 flex items-center px-4 z-40">
         <Link href="/" className="flex items-center">
           <Image 
@@ -127,30 +122,29 @@ export function DashboardSidebar() {
         </button>
       </div>
 
-      {/* 2. Sidebar Mobile (Drawer) */}
+      {/* Sidebar Mobile (Drawer) */}
       {isMobileSidebarOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
-          {/* Fond sombre (Backdrop) */}
           <div 
             className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
             onClick={() => setIsMobileSidebarOpen(false)}
           />
-          {/* Panneau latéral */}
           <aside className="relative w-64 bg-obsidian-card border-r border-white/10 p-5 flex flex-col min-h-screen animate-in slide-in-from-left duration-200">
             <SidebarContent />
           </aside>
         </div>
       )}
 
-      {/* 3. Sidebar Desktop avec bouton de réduction */}
+      {/* Sidebar Desktop avec bouton de réduction CORRECTION ICI */}
       <aside className={cn(
         "hidden md:flex md:flex-col shrink-0 border-r border-white/10 bg-obsidian-card min-h-screen p-5 transition-all duration-300 relative",
         isCollapsed ? "w-20" : "w-64"
       )}>
-        {/* Bouton pour réduire/agrandir - PLUS VISIBLE */}
+        {/* Bouton toggle : z-40 pour passer AU-DESSUS de la TopBar (z-30) */}
+        {/* Positionnement dynamique : right-[-14px] quand ouvert, right-[-14px] quand fermé reste cohérent car la sidebar elle-même change de largeur */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-6 h-7 w-7 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-obsidian border-2 border-obsidian-card flex items-center justify-center hover:scale-110 hover:shadow-lg hover:shadow-gold/20 transition-all z-20 font-bold"
+          className="absolute -right-[14px] top-6 h-7 w-7 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-obsidian border-2 border-obsidian-card flex items-center justify-center hover:scale-110 hover:shadow-lg hover:shadow-gold/20 transition-all z-40 font-bold cursor-pointer"
           aria-label={isCollapsed ? "Agrandir la sidebar" : "Réduire la sidebar"}
           title={isCollapsed ? "Agrandir le menu" : "Réduire le menu"}
         >
@@ -160,7 +154,7 @@ export function DashboardSidebar() {
         <SidebarContent isDesktop />
       </aside>
 
-      {/* 4. Menu du bas sur mobile (Bottom Navigation) */}
+      {/* Menu du bas sur mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-obsidian-card border-t border-white/10 px-2 z-40 pb-2">
         <div className="flex justify-around items-center h-16">
           {BOTTOM_NAV_ITEMS.map(({ href, label, icon: Icon }) => {
