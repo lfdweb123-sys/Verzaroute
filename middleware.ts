@@ -12,8 +12,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 function decodeRoleFromSessionCookie(sessionCookie: string): string | null {
   try {
-    // Le cookie de session Firebase est un JWT ; on décode le payload sans vérifier la signature
-    // (vérification cryptographique complète déléguée aux API routes via Admin SDK).
     const payloadBase64 = sessionCookie.split(".")[1];
     const json = JSON.parse(Buffer.from(payloadBase64, "base64").toString("utf-8"));
     return json.role ?? json.claims?.role ?? null;
@@ -22,7 +20,20 @@ function decodeRoleFromSessionCookie(sessionCookie: string): string | null {
   }
 }
 
-const PUBLIC_PATHS = ["/", "/login", "/register", "/api", "/manifest.json", "/firebase-messaging-sw.js", "/sw.js"];
+const PUBLIC_PATHS = [
+  "/",
+  "/login",
+  "/register",
+  "/api",
+  "/manifest.json",
+  "/firebase-messaging-sw.js",
+  "/sw.js",
+  "/docs",
+  "/status",
+  "/privacy",
+  "/terms",
+  "/about",
+];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -32,7 +43,6 @@ export function middleware(req: NextRequest) {
   const role = sessionCookie ? decodeRoleFromSessionCookie(sessionCookie) : null;
   const isAuthenticated = Boolean(sessionCookie);
 
-  // Utilisateur connecté qui va sur /login ou /register -> redirection vers son espace
   if (isAuthenticated && (pathname === "/login" || pathname === "/register")) {
     const dest = role === "admin" ? "/admin/dashboard" : "/dashboard";
     return NextResponse.redirect(new URL(dest, req.url));
