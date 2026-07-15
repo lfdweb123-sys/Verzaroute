@@ -4,6 +4,14 @@ import { ArrowRight, FileText } from "lucide-react";
 export function Hero() {
   return (
     <section className="relative overflow-hidden">
+      {/* Rayures verticales dorées subtiles */}
+      <div
+        className="absolute inset-0 opacity-[0.05]"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(90deg, #D4AF37 0px, #D4AF37 1px, transparent 1px, transparent 64px)",
+        }}
+      />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(212,175,55,0.14),transparent_60%)]" />
       <div className="relative mx-auto max-w-6xl px-5 sm:px-6 pt-14 sm:pt-20 md:pt-24 pb-14 sm:pb-20">
 

@@ -9,6 +9,8 @@ const SECTIONS = [
   { id: "quickstart", label: "Démarrage rapide" },
   { id: "auth", label: "Authentification" },
   { id: "endpoint", label: "Endpoint de chat" },
+  { id: "files", label: "Fichiers (images, documents)" },
+  { id: "images", label: "Génération d'image" },
   { id: "models", label: "Modèles disponibles" },
   { id: "credits", label: "Facturation & crédits" },
   { id: "errors", label: "Gestion des erreurs" },
@@ -48,7 +50,6 @@ export default function DocsPage() {
       </header>
 
       <div className="mx-auto max-w-6xl px-5 sm:px-6 py-10 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-10">
-        {/* CORRECTION ICI : Balise Link correctement ouverte */}
         <nav className="hidden lg:block sticky top-24 self-start space-y-1">
           {SECTIONS.map((s) => (
             <Link
@@ -128,6 +129,89 @@ export default function DocsPage() {
             </div>
           </section>
 
+          <section id="files">
+            <h2 className="text-2xl font-bold mb-3">Fichiers (images, documents)</h2>
+            <p className={cn("leading-relaxed mb-4", dark ? "text-white/70" : "text-neutral-600")}>
+              Le champ <code>content</code> d&apos;un message accepte soit une simple chaîne de texte,
+              soit un tableau de blocs pour joindre des images et documents à ta requête :
+            </p>
+            <CodeBlock dark={dark}>
+{`curl https://verzaroute.com/api/v1/chat/completions \\
+  -H "Authorization: Bearer vzr_sk_..." \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "claude-sonnet-5",
+    "messages": [{
+      "role": "user",
+      "content": [
+        { "type": "text", "text": "Décris cette image" },
+        { "type": "image", "base64": "<base64_sans_prefixe>", "mimeType": "image/png" }
+      ]
+    }]
+  }'`}
+            </CodeBlock>
+            <div className={cn("rounded-xl border overflow-hidden mt-4", dark ? "border-white/10" : "border-neutral-200")}>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className={dark ? "bg-white/5 text-white/50" : "bg-neutral-50 text-neutral-500"}>
+                    <th className="text-left px-4 py-2.5 font-medium">Type de bloc</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Champs</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Support par fournisseur</th>
+                  </tr>
+                </thead>
+                <tbody className={cn("divide-y", dark ? "divide-white/5" : "divide-neutral-100")}>
+                  {[
+                    ["text", "text", "Tous les fournisseurs"],
+                    ["image", "base64, mimeType", "Tous les modèles vision (GPT-4o, Claude, Gemini, etc.)"],
+                    ["document", "base64, mimeType, filename", "Nativement : Anthropic (Claude), Google (Gemini). Dégradé en texte signalé pour les autres."],
+                  ].map(([t, f, s]) => (
+                    <tr key={t}>
+                      <td className="px-4 py-2.5 font-mono text-gold">{t}</td>
+                      <td className={cn("px-4 py-2.5 font-mono text-xs", dark ? "text-white/60" : "text-neutral-500")}>{f}</td>
+                      <td className={cn("px-4 py-2.5", dark ? "text-white/70" : "text-neutral-600")}>{s}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="images">
+            <h2 className="text-2xl font-bold mb-3">Génération d&apos;image</h2>
+            <p className={cn("leading-relaxed mb-4", dark ? "text-white/70" : "text-neutral-600")}>
+              <code>POST /api/v1/images/generations</code> génère une image à partir d&apos;un prompt
+              texte, avec un modèle dédié à la génération d&apos;image (distinct des modèles de chat).
+            </p>
+            <CodeBlock dark={dark}>
+{`curl https://verzaroute.com/api/v1/images/generations \\
+  -H "Authorization: Bearer vzr_sk_..." \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "gpt-image-1",
+    "prompt": "Un lion doré au coucher du soleil, style peinture à l'huile",
+    "size": "1024x1024"
+  }'`}
+            </CodeBlock>
+            <p className={cn("leading-relaxed mt-4 mb-2", dark ? "text-white/70" : "text-neutral-600")}>
+              La réponse contient l&apos;image encodée en base64 :
+            </p>
+            <CodeBlock dark={dark}>
+{`{
+  "created": 1720000000,
+  "data": [{ "b64_json": "..." }],
+  "verzaroute": { "credits_charged": 4 }
+}`}
+            </CodeBlock>
+            <p className={cn("leading-relaxed mt-4", dark ? "text-white/70" : "text-neutral-600")}>
+              Contrairement au chat (facturé au token), la génération d&apos;image est facturée à un{" "}
+              <strong>forfait fixe par image</strong>, propre à chaque modèle. Consulte{" "}
+              <Link href="/dashboard/models" className="text-gold hover:underline">
+                ton dashboard → Modèles
+              </Link>{" "}
+              pour voir les modèles de génération d&apos;image disponibles et leur prix.
+            </p>
+          </section>
+
           <section id="models">
             <h2 className="text-2xl font-bold mb-3">Modèles disponibles</h2>
             <p className={cn("leading-relaxed mb-4", dark ? "text-white/70" : "text-neutral-600")}>
@@ -144,9 +228,10 @@ export default function DocsPage() {
           <section id="credits">
             <h2 className="text-2xl font-bold mb-3">Facturation & crédits</h2>
             <p className={cn("leading-relaxed mb-4", dark ? "text-white/70" : "text-neutral-600")}>
-              Chaque appel débite ton solde en fonction des tokens réellement consommés (entrée +
-              sortie), au coût du fournisseur majoré d&apos;une marge de service. Le coût exact de
-              chaque appel est renvoyé dans la réponse, champ <code>verzaroute.credits_charged</code>.
+              Chaque appel de chat débite ton solde en fonction des tokens réellement consommés (entrée
+              + sortie), au coût du fournisseur majoré d&apos;une marge de service. Chaque génération
+              d&apos;image débite un forfait fixe par image. Le coût exact de chaque appel est renvoyé
+              dans la réponse, champ <code>verzaroute.credits_charged</code>.
             </p>
           </section>
 
