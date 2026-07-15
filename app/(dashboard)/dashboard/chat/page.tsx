@@ -183,7 +183,7 @@ function ChatContent() {
       }
       return (
         <span key={i} className="mt-2 flex items-center gap-1.5 text-xs opacity-70">
-          <FileText size={14} /> {block.filename ?? "Document joint"}
+          <FileText size={14} className="shrink-0" /> {block.filename ?? "Document joint"}
         </span>
       );
     });
@@ -234,7 +234,8 @@ function ChatContent() {
         >
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-center text-white/40 px-4">
-              <Bot size={32} sm:size={40} className="mb-2 sm:mb-3 text-gold/50" />
+              {/* Correction: utilisation de className pour la taille responsive */}
+              <Bot size={32} className="mb-2 sm:mb-3 text-gold/50 sm:w-10 sm:h-10" />
               <p className="text-xs sm:text-sm">
                 Commence une conversation avec {currentModel?.displayName ?? "un modèle"}.
               </p>
@@ -248,7 +249,8 @@ function ChatContent() {
             <div key={i} className={cn("flex gap-2 sm:gap-3", msg.role === "user" ? "justify-end" : "justify-start")}>
               {msg.role === "assistant" && (
                 <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
-                  <Bot size={14} sm:size={16} className="text-gold" />
+                  {/* Correction: sm:w-4 sm:h-4 remplace sm:size={16} */}
+                  <Bot size={14} className="text-gold sm:w-4 sm:h-4" />
                 </div>
               )}
               <div
@@ -264,7 +266,8 @@ function ChatContent() {
               </div>
               {msg.role === "user" && (
                 <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 rounded-full bg-white/10 flex items-center justify-center">
-                  <UserIcon size={14} sm:size={16} className="text-white/70" />
+                  {/* Correction: sm:w-4 sm:h-4 remplace sm:size={16} */}
+                  <UserIcon size={14} className="text-white/70 sm:w-4 sm:h-4" />
                 </div>
               )}
             </div>
@@ -273,10 +276,12 @@ function ChatContent() {
           {loading && (
             <div className="flex gap-2 sm:gap-3 justify-start">
               <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
-                <Bot size={14} sm:size={16} className="text-gold" />
+                {/* Correction: sm:w-4 sm:h-4 remplace sm:size={16} */}
+                <Bot size={14} className="text-gold sm:w-4 sm:h-4" />
               </div>
               <div className="rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 bg-obsidian-card border border-white/10">
-                <Loader2 size={14} sm:size={16} className="animate-spin text-white/50" />
+                {/* Correction: sm:w-4 sm:h-4 remplace sm:size={16} */}
+                <Loader2 size={14} className="animate-spin text-white/50 sm:w-4 sm:h-4" />
               </div>
             </div>
           )}
@@ -310,7 +315,8 @@ function ChatContent() {
                   className="text-white/40 hover:text-red-400 shrink-0 p-0.5" 
                   aria-label="Retirer"
                 >
-                  <X size={12} sm:size={13} />
+                  {/* Correction: sm:w-3.5 sm:h-3.5 remplace sm:size={13} */}
+                  <X size={12} className="sm:w-3.5 sm:h-3.5" />
                 </button>
               </div>
             ))}
@@ -334,7 +340,8 @@ function ChatContent() {
             aria-label="Joindre un fichier"
             title="Joindre une image ou un document"
           >
-            <Paperclip size={16} sm:size={18} />
+            {/* Correction: sm:w-[18px] sm:h-[18px] remplace sm:size={18} */}
+            <Paperclip size={16} className="sm:w-[18px] sm:h-[18px]" />
           </button>
           <textarea
             value={input}
@@ -351,7 +358,8 @@ function ChatContent() {
             className="shrink-0 rounded-xl bg-gold-gradient p-2 sm:p-2.5 md:p-3 text-obsidian hover:scale-[1.05] transition-transform disabled:opacity-40 disabled:hover:scale-100"
             aria-label="Envoyer"
           >
-            <Send size={16} sm:size={18} />
+            {/* Correction: sm:w-[18px] sm:h-[18px] remplace sm:size={18} */}
+            <Send size={16} className="sm:w-[18px] sm:h-[18px]" />
           </button>
         </div>
       </div>
