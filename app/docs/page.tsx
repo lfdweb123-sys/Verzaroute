@@ -48,9 +48,10 @@ export default function DocsPage() {
       </header>
 
       <div className="mx-auto max-w-6xl px-5 sm:px-6 py-10 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-10">
+        {/* CORRECTION ICI : Balise Link correctement ouverte */}
         <nav className="hidden lg:block sticky top-24 self-start space-y-1">
           {SECTIONS.map((s) => (
-            
+            <Link
               key={s.id}
               href={`#${s.id}`}
               className={cn(
@@ -59,7 +60,7 @@ export default function DocsPage() {
               )}
             >
               {s.label}
-            </a>
+            </Link>
           ))}
         </nav>
 
