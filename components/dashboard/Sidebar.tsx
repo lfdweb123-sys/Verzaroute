@@ -144,16 +144,17 @@ export function DashboardSidebar() {
 
       {/* 3. Sidebar Desktop avec bouton de réduction */}
       <aside className={cn(
-        "hidden md:flex md:flex-col shrink-0 border-r border-white/10 bg-obsidian-card min-h-screen p-5 transition-all duration-300 relative group",
+        "hidden md:flex md:flex-col shrink-0 border-r border-white/10 bg-obsidian-card min-h-screen p-5 transition-all duration-300 relative",
         isCollapsed ? "w-20" : "w-64"
       )}>
-        {/* Bouton pour réduire/agrandir - visible au survol ou toujours */}
+        {/* Bouton pour réduire/agrandir - PLUS VISIBLE */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-8 h-6 w-6 rounded-full bg-gold-gradient text-obsidian border-2 border-obsidian-card flex items-center justify-center hover:scale-110 transition-transform z-10 shadow-lg"
+          className="absolute -right-3 top-6 h-7 w-7 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-obsidian border-2 border-obsidian-card flex items-center justify-center hover:scale-110 hover:shadow-lg hover:shadow-gold/20 transition-all z-20 font-bold"
           aria-label={isCollapsed ? "Agrandir la sidebar" : "Réduire la sidebar"}
+          title={isCollapsed ? "Agrandir le menu" : "Réduire le menu"}
         >
-          {isCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+          {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
         </button>
 
         <SidebarContent isDesktop />
