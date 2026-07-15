@@ -2,6 +2,9 @@
  * Échange un idToken Firebase (obtenu côté client après signInWithRedirect ou email/mdp)
  * contre un cookie de session HttpOnly sécurisé, utilisé par le middleware pour la redirection par rôle
  * et par les API routes pour authentifier l'utilisateur.
+ *
+ * DEBUG : tous les logs de cette route sont préfixés "[VZR-SESSION]" et visibles dans
+ * Vercel → ton projet → onglet "Logs" (ou "Functions" → cliquer sur l'invocation).
  */
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, createSessionCookie } from "@/lib/firebase/admin";
@@ -10,17 +13,36 @@ import { adminDb } from "@/lib/firebase/admin";
 const SESSION_EXPIRES_MS = 60 * 60 * 24 * 14 * 1000; // 14 jours
 
 export async function POST(req: NextRequest) {
-  const { idToken } = await req.json().catch(() => ({}));
-  if (!idToken) return NextResponse.json({ error: "idToken requis" }, { status: 400 });
+  console.log("[VZR-SESSION] Requête POST reçue sur /api/auth/session");
+
+  const body = await req.json().catch((err) => {
+    console.error("[VZR-SESSION] Échec du parsing JSON du corps de la requête:", err);
+    return {};
+  });
+  const { idToken } = body;
+
+  if (!idToken) {
+    console.warn("[VZR-SESSION] Aucun idToken fourni dans le corps de la requête");
+    return NextResponse.json({ error: "idToken requis" }, { status: 400 });
+  }
+  console.log("[VZR-SESSION] idToken reçu, longueur:", idToken.length);
 
   try {
+    console.log("[VZR-SESSION] Vérification de l'idToken via Firebase Admin...");
     const decoded = await adminAuth.verifyIdToken(idToken);
+    console.log("[VZR-SESSION] idToken vérifié avec succès. uid:", decoded.uid, "email:", decoded.email);
+
+    console.log("[VZR-SESSION] Création du cookie de session...");
     const sessionCookie = await createSessionCookie(idToken, SESSION_EXPIRES_MS);
+    console.log("[VZR-SESSION] Cookie de session créé, longueur:", sessionCookie.length);
 
     // Crée le profil utilisateur au premier login si besoin
     const userRef = adminDb.collection("users").doc(decoded.uid);
     const snap = await userRef.get();
+    console.log("[VZR-SESSION] Document utilisateur existe déjà ?", snap.exists);
+
     if (!snap.exists) {
+      console.log("[VZR-SESSION] Création du profil utilisateur Firestore pour uid:", decoded.uid);
       await userRef.set({
         uid: decoded.uid,
         email: decoded.email ?? "",
@@ -32,9 +54,11 @@ export async function POST(req: NextRequest) {
         updatedAt: Date.now(),
       });
       await adminAuth.setCustomUserClaims(decoded.uid, { role: "user" });
+      console.log("[VZR-SESSION] Profil utilisateur créé et rôle 'user' attribué (custom claims)");
     }
 
     const role = (snap.data()?.role as string) ?? (decoded as unknown as { role?: string }).role ?? "user";
+    console.log("[VZR-SESSION] Rôle résolu:", role, "— envoi de la réponse avec cookie de session");
 
     const res = NextResponse.json({ success: true, role });
     res.cookies.set("session", sessionCookie, {
@@ -44,8 +68,14 @@ export async function POST(req: NextRequest) {
       maxAge: SESSION_EXPIRES_MS / 1000,
       path: "/",
     });
+    console.log("[VZR-SESSION] Réponse envoyée avec succès (200)");
     return res;
   } catch (error) {
+    console.error("[VZR-SESSION] ERREUR lors du traitement de la session:", error);
+    if (error instanceof Error) {
+      console.error("[VZR-SESSION] Message d'erreur:", error.message);
+      console.error("[VZR-SESSION] Stack:", error.stack);
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Token invalide" },
       { status: 401 }
@@ -54,6 +84,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE() {
+  console.log("[VZR-SESSION] Requête DELETE reçue — suppression du cookie de session");
   const res = NextResponse.json({ success: true });
   res.cookies.delete("session");
   return res;

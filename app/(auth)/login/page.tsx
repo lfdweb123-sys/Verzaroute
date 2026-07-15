@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { FirebaseError } from "firebase/app";
 
@@ -27,6 +29,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  
+  // État pour la visibilité du mot de passe
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,11 +49,18 @@ export default function LoginPage() {
   return (
     <div className="rounded-2xl border border-white/10 bg-obsidian-card p-8 shadow-2xl animate-fade-in">
       <div className="text-center mb-8">
-        <span className="text-2xl font-extrabold">
-          <span className="gold-text">Verza</span>
-          <span className="text-white">Route</span>
-        </span>
-        <h1 className="mt-4 text-xl font-semibold text-white">Connexion à votre compte</h1>
+        {/* Logo cliquable vers l'accueil */}
+        <Link href="/" className="inline-block mb-4">
+          <Image 
+            src="/icons/icon-192.png" 
+            alt="VerzaRoute Logo" 
+            width={48} 
+            height={48} 
+            className="rounded-md mx-auto" 
+            priority 
+          />
+        </Link>
+        <h1 className="text-xl font-semibold text-white">Connexion à votre compte</h1>
       </div>
 
       <button
@@ -83,16 +95,28 @@ export default function LoginPage() {
             placeholder="vous@exemple.com"
           />
         </div>
+        
+        {/* Champ Mot de passe avec icône œil */}
         <div>
           <label className="block text-sm text-white/70 mb-1.5">Mot de passe</label>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-white/15 bg-obsidian px-3.5 py-2.5 text-white outline-none focus:border-gold/50 transition-colors"
-            placeholder="••••••••"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-lg border border-white/15 bg-obsidian px-3.5 py-2.5 pr-10 text-white outline-none focus:border-gold/50 transition-colors"
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+              aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
 
         {error && <p className="text-sm text-red-400">{error}</p>}

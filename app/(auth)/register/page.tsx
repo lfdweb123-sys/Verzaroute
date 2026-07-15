@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { Eye, EyeOff } from "lucide-react"; // Import des icônes œil
 import { useAuth } from "@/lib/auth/AuthContext";
 import { FirebaseError } from "firebase/app";
 
@@ -28,10 +30,13 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  
+  // États pour la visibilité des mots de passe
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    alert("Bouton cliqué, email: " + email); // ligne de debug temporaire
     
     setError(null);
     if (password !== confirmPassword) {
@@ -51,11 +56,18 @@ export default function RegisterPage() {
   return (
     <div className="rounded-2xl border border-white/10 bg-obsidian-card p-8 shadow-2xl animate-fade-in">
       <div className="text-center mb-8">
-        <span className="text-2xl font-extrabold">
-          <span className="gold-text">Verza</span>
-          <span className="text-white">Route</span>
-        </span>
-        <h1 className="mt-4 text-xl font-semibold text-white">Créer votre compte</h1>
+        {/* Logo cliquable vers l'accueil */}
+        <Link href="/" className="inline-block mb-4">
+          <Image 
+            src="/icons/icon-192.png" 
+            alt="VerzaRoute Logo" 
+            width={48} 
+            height={48} 
+            className="rounded-md mx-auto" 
+            priority 
+          />
+        </Link>
+        <h1 className="text-xl font-semibold text-white">Créer votre compte</h1>
         <p className="text-sm text-white/50 mt-1">Accédez à 10 fournisseurs IA avec une seule clé</p>
       </div>
 
@@ -91,28 +103,52 @@ export default function RegisterPage() {
             placeholder="vous@exemple.com"
           />
         </div>
+        
+        {/* Champ Mot de passe avec icône œil */}
         <div>
           <label className="block text-sm text-white/70 mb-1.5">Mot de passe</label>
-          <input
-            type="password"
-            required
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-white/15 bg-obsidian px-3.5 py-2.5 text-white outline-none focus:border-gold/50 transition-colors"
-            placeholder="••••••••"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-lg border border-white/15 bg-obsidian px-3.5 py-2.5 pr-10 text-white outline-none focus:border-gold/50 transition-colors"
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+              aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
+
+        {/* Champ Confirmer le mot de passe avec icône œil */}
         <div>
           <label className="block text-sm text-white/70 mb-1.5">Confirmer le mot de passe</label>
-          <input
-            type="password"
-            required
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full rounded-lg border border-white/15 bg-obsidian px-3.5 py-2.5 text-white outline-none focus:border-gold/50 transition-colors"
-            placeholder="••••••••"
-          />
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full rounded-lg border border-white/15 bg-obsidian px-3.5 py-2.5 pr-10 text-white outline-none focus:border-gold/50 transition-colors"
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+              aria-label={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+            >
+              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
 
         {error && <p className="text-sm text-red-400">{error}</p>}
