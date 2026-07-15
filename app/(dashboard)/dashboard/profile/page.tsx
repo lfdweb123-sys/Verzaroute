@@ -36,7 +36,7 @@ export default function ProfilePage() {
   return (
     <>
       <DashboardTopBar title="Profil" />
-      <div className="p-6 md:p-8 max-w-xl space-y-6">
+      <div className="p-6 md:p-8 max-w-8xl space-y-6">
         <div className="rounded-2xl border border-white/10 bg-obsidian-card p-6">
           <div className="flex items-center gap-4 mb-6">
             <div className="h-16 w-16 rounded-full bg-gold-gradient flex items-center justify-center text-obsidian font-bold text-xl">

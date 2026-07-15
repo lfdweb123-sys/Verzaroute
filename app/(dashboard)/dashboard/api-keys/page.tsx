@@ -71,7 +71,7 @@ export default function ApiKeysPage() {
   return (
     <>
       <DashboardTopBar title="Clés API" />
-      <div className="p-6 md:p-8 space-y-6 max-w-3xl">
+      <div className="p-6 md:p-8 space-y-6 max-w-8xl">
         {revealedKey && (
           <div className="rounded-2xl border border-gold/30 bg-gold/5 p-5">
             <div className="flex items-center gap-2 text-gold mb-2">

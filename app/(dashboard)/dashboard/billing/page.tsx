@@ -42,7 +42,7 @@ export default function BillingPage() {
   return (
     <>
       <DashboardTopBar title="Crédits & paiement" />
-      <div className="p-6 md:p-8 max-w-2xl space-y-6">
+      <div className="p-6 md:p-8 max-w-8xl space-y-6">
         <div className="rounded-2xl border border-white/10 bg-obsidian-card p-6">
           <h2 className="text-white font-semibold mb-4">Choisissez un montant (FCFA)</h2>
           <div className="grid grid-cols-3 gap-3 mb-4">
