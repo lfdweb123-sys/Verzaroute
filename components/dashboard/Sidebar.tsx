@@ -18,7 +18,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/profile", label: "Profil", icon: User },
 ];
 
-// Sélection des éléments les plus importants pour le menu du bas sur mobile (max 4-5 pour la lisibilité)
+// Sélection des éléments les plus importants pour le menu du bas sur mobile
 const BOTTOM_NAV_ITEMS = [
   { href: "/dashboard", label: "Accueil", icon: LayoutDashboard },
   { href: "/dashboard/chat", label: "Chat", icon: MessageSquare },
@@ -92,28 +92,24 @@ export function DashboardSidebar() {
 
   return (
     <>
-      {/* 1. Barre mobile supérieure avec bouton menu (Hamburger) */}
+      {/* 1. Barre mobile supérieure : logo à gauche, menu à droite */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-obsidian-card border-b border-white/10 flex items-center px-4 z-40">
+        <Link href="/" className="flex items-center">
+          <Image 
+            src="/icons/icon-192.png" 
+            alt="VerzaRoute Logo" 
+            width={36} 
+            height={36} 
+            className="rounded-md" 
+          />
+        </Link>
         <button 
           onClick={() => setIsMobileSidebarOpen(true)}
-          className="p-2 -ml-2 text-white/80 hover:text-white"
+          className="ml-auto p-2 text-white/80 hover:text-white"
           aria-label="Ouvrir le menu"
         >
           <Menu size={24} />
         </button>
-        <Link href="/" className="ml-3 flex items-center gap-2">
-          <Image 
-            src="/icons/icon-192.png" 
-            alt="VerzaRoute Logo" 
-            width={32} 
-            height={32} 
-            className="rounded-md" 
-          />
-          <span className="text-lg font-extrabold">
-            <span className="gold-text">Verza</span>
-            <span className="text-white">Route</span>
-          </span>
-        </Link>
       </div>
 
       {/* 2. Sidebar Mobile (Drawer) */}
@@ -131,7 +127,7 @@ export function DashboardSidebar() {
         </div>
       )}
 
-      {/* 3. Sidebar Desktop (inchangée) */}
+      {/* 3. Sidebar Desktop */}
       <aside className="hidden md:flex md:flex-col w-64 shrink-0 border-r border-white/10 bg-obsidian-card min-h-screen p-5">
         <SidebarContent />
       </aside>
