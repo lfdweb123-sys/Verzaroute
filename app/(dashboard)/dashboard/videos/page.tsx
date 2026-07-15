@@ -121,7 +121,7 @@ export default function VideosPage() {
               <select
                 value={selectedModel}
                 onChange={(e) => setSelectedModel(e.target.value)}
-                className="rounded-lg bg-obsidian border border-white/15 px-3 py-2.5 text-sm text-white outline-none focus:border-gold/50"
+                className="rounded-lg bg-obsidian border border-white/15 px-3 py-2.5 text-sm text-white outline-none focus:border-gold/50 w-full sm:w-auto"
               >
                 {models.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -150,7 +150,7 @@ export default function VideosPage() {
               </button>
               <p className="text-xs text-white/40">
                 La génération vidéo est asynchrone et peut prendre de 30 secondes à quelques minutes.
-                {currentModel && ` Coût estimé : ~${(currentModel.pricePerVideoSecondUsd ?? 0 * 8).toFixed(2)}$ + marge pour un clip standard.`}
+                {currentModel && ` Coût estimé : ~${((currentModel.pricePerVideoSecondUsd ?? 0) * 8).toFixed(2)}$ + marge pour un clip standard.`}
               </p>
             </div>
 
@@ -189,7 +189,7 @@ export default function VideosPage() {
                             {job.creditsCharged ? `-${job.creditsCharged} crédits` : "—"}
                           </span>
                           {job.status === "ready" && job.videoUrl && (
-                            
+                            <a
                               href={job.videoUrl}
                               download
                               className="flex items-center gap-1 text-xs text-gold hover:underline"
