@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, KeyRound, History, Wallet, User, LogOut, Sparkles, MessageSquare, Menu, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { LayoutDashboard, KeyRound, History, Wallet, User, LogOut, Sparkles, MessageSquare, Menu, X, PanelLeftClose, PanelLeftOpen, ImagePlus } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { cn } from "@/lib/utils/cn";
 
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Vue d'ensemble", icon: LayoutDashboard },
   { href: "/dashboard/models", label: "Modèles", icon: Sparkles },
   { href: "/dashboard/chat", label: "Discuter", icon: MessageSquare },
+  { href: "/dashboard/images", label: "Générer une image", icon: ImagePlus },
   { href: "/dashboard/api-keys", label: "Clés API", icon: KeyRound },
   { href: "/dashboard/billing", label: "Crédits & paiement", icon: Wallet },
   { href: "/dashboard/history", label: "Historique", icon: History },
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
 const BOTTOM_NAV_ITEMS = [
   { href: "/dashboard", label: "Accueil", icon: LayoutDashboard },
   { href: "/dashboard/chat", label: "Chat", icon: MessageSquare },
+  { href: "/dashboard/images", label: "Images", icon: ImagePlus },
   { href: "/dashboard/api-keys", label: "Clés", icon: KeyRound },
   { href: "/dashboard/profile", label: "Profil", icon: User },
 ];
@@ -135,13 +137,11 @@ export function DashboardSidebar() {
         </div>
       )}
 
-      {/* Sidebar Desktop avec bouton de réduction CORRECTION ICI */}
+      {/* Sidebar Desktop */}
       <aside className={cn(
         "hidden md:flex md:flex-col shrink-0 border-r border-white/10 bg-obsidian-card min-h-screen p-5 transition-all duration-300 relative",
         isCollapsed ? "w-20" : "w-64"
       )}>
-        {/* Bouton toggle : z-40 pour passer AU-DESSUS de la TopBar (z-30) */}
-        {/* Positionnement dynamique : right-[-14px] quand ouvert, right-[-14px] quand fermé reste cohérent car la sidebar elle-même change de largeur */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="absolute -right-[14px] top-6 h-7 w-7 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-obsidian border-2 border-obsidian-card flex items-center justify-center hover:scale-110 hover:shadow-lg hover:shadow-gold/20 transition-all z-40 font-bold cursor-pointer"

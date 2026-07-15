@@ -1,9 +1,3 @@
-/**
- * Catalogue de référence des modèles IA proposés par VerzaRoute.
- * Ces données sont utilisées pour SEEDER Firestore (collection `models`) au premier lancement,
- * et affichées sur la page d'accueil. La marge et l'activation sont ensuite pilotables
- * depuis le dashboard admin (/admin/dashboard/models), Firestore reste la source de vérité en prod.
- */
 import type { AiModel } from "@/types";
 
 export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
@@ -149,5 +143,46 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     marginPercent: 25,
     enabled: true,
     tags: ["multimodal", "raisonnement"],
+  },
+
+  // --- Modèles de génération d'image ---
+  {
+    provider: "openai",
+    displayName: "GPT Image 1",
+    description: "Modèle de génération d'image d'OpenAI, haute fidélité et bonne compréhension des prompts détaillés.",
+    contextWindow: 0,
+    inputPricePerMTokUsd: 0,
+    outputPricePerMTokUsd: 0,
+    marginPercent: 25,
+    enabled: true,
+    tags: ["image", "génération"],
+    modality: "image",
+    pricePerImageUsd: 0.04,
+  },
+  {
+    provider: "google",
+    displayName: "Imagen 4",
+    description: "Modèle de génération d'image de Google, excellent rendu photoréaliste.",
+    contextWindow: 0,
+    inputPricePerMTokUsd: 0,
+    outputPricePerMTokUsd: 0,
+    marginPercent: 25,
+    enabled: true,
+    tags: ["image", "génération", "photoréaliste"],
+    modality: "image",
+    pricePerImageUsd: 0.03,
+  },
+  {
+    provider: "xai",
+    displayName: "Grok Image",
+    description: "Modèle de génération d'image de xAI, style créatif et réactif.",
+    contextWindow: 0,
+    inputPricePerMTokUsd: 0,
+    outputPricePerMTokUsd: 0,
+    marginPercent: 25,
+    enabled: true,
+    tags: ["image", "génération", "créatif"],
+    modality: "image",
+    pricePerImageUsd: 0.02,
   },
 ];

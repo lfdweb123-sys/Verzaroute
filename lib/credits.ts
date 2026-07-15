@@ -1,9 +1,3 @@
-/**
- * Logique de facturation des crédits.
- * 1 "crédit" = unité interne. La conversion crédits <-> USD est pilotée par
- * PlatformSettings.creditToUsdRate (modifiable par l'admin), ce qui permet
- * d'ajuster la marge globale sans redéployer le code.
- */
 import { adminDb } from "@/lib/firebase/admin";
 import type { AiModel } from "@/types";
 import { FieldValue } from "firebase-admin/firestore";
@@ -20,14 +14,20 @@ export function computeCreditsCharged(params: {
     (outputTokens / 1_000_000) * model.outputPricePerMTokUsd;
   const priceWithMarginUsd = rawCostUsd * (1 + model.marginPercent / 100);
   const credits = priceWithMarginUsd / creditToUsdRate;
-  // On arrondit toujours vers le haut pour ne jamais sous-facturer
   return Math.max(1, Math.ceil(credits));
 }
 
-/**
- * Débite atomiquement le solde d'un utilisateur. Lève une erreur si le solde est insuffisant.
- * Utilise une transaction Firestore pour éviter les conditions de course entre deux appels simultanés.
- */
+export function computeImageCreditsCharged(params: {
+  model: AiModel;
+  creditToUsdRate: number;
+}): number {
+  const { model, creditToUsdRate } = params;
+  const priceUsd = model.pricePerImageUsd ?? 0;
+  const priceWithMarginUsd = priceUsd * (1 + model.marginPercent / 100);
+  const credits = priceWithMarginUsd / creditToUsdRate;
+  return Math.max(1, Math.ceil(credits));
+}
+
 export async function debitCredits(uid: string, amount: number, description: string): Promise<void> {
   const userRef = adminDb.collection("users").doc(uid);
   await adminDb.runTransaction(async (tx) => {
@@ -54,7 +54,6 @@ export async function debitCredits(uid: string, amount: number, description: str
   });
 }
 
-/** Crédite le solde utilisateur (appelé par le webhook Verzapay après paiement confirmé). */
 export async function creditUserAccount(params: {
   uid: string;
   amountCredits: number;
@@ -65,7 +64,6 @@ export async function creditUserAccount(params: {
   const userRef = adminDb.collection("users").doc(uid);
 
   await adminDb.runTransaction(async (tx) => {
-    // Idempotence : si ce paiement a déjà été traité, on ne re-crédite pas
     const existing = await tx.get(
       adminDb.collection("transactions").where("verzapayPaymentId", "==", verzapayPaymentId).limit(1)
     );

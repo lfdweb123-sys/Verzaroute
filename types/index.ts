@@ -6,7 +6,7 @@ export interface UserProfile {
   displayName: string;
   photoURL?: string;
   role: Role;
-  creditsBalance: number; // en crédits (1 crédit = unité interne de facturation)
+  creditsBalance: number;
   createdAt: number;
   updatedAt: number;
   disabled?: boolean;
@@ -15,8 +15,8 @@ export interface UserProfile {
 export interface ApiKeyRecord {
   id: string;
   uid: string;
-  hash: string;       // SHA-256 de la clé complète, jamais la clé en clair
-  prefix: string;     // ex: vzr_sk_ab12 (les 8 premiers caractères, affichables)
+  hash: string;
+  prefix: string;
   label: string;
   createdAt: number;
   lastUsedAt?: number;
@@ -24,17 +24,19 @@ export interface ApiKeyRecord {
 }
 
 export interface AiModel {
-  id: string;            // ex: "gpt-4o", "claude-sonnet-5", "gemini-2.5-pro"
+  id: string;
   provider: ProviderId;
   displayName: string;
   description: string;
   contextWindow: number;
-  inputPricePerMTokUsd: number;   // prix coûtant fournisseur ($/1M tokens input)
-  outputPricePerMTokUsd: number;  // prix coûtant fournisseur ($/1M tokens output)
-  marginPercent: number;          // marge appliquée par VerzaRoute
+  inputPricePerMTokUsd: number;
+  outputPricePerMTokUsd: number;
+  marginPercent: number;
   enabled: boolean;
-  tags: string[];         // ex: ["rapide", "raisonnement", "code", "multimodal"]
+  tags: string[];
   logo?: string;
+  modality?: "text" | "image";
+  pricePerImageUsd?: number;
 }
 
 export type ProviderId =
@@ -68,8 +70,8 @@ export interface Transaction {
   id: string;
   uid: string;
   type: "purchase" | "usage" | "refund" | "adjustment";
-  amountCredits: number;   // positif = crédit, négatif = débit
-  amountFcfa?: number;     // montant payé le cas échéant
+  amountCredits: number;
+  amountFcfa?: number;
   verzapayPaymentId?: string;
   status: "pending" | "completed" | "failed";
   createdAt: number;
@@ -87,9 +89,9 @@ export interface Payout {
 }
 
 export interface PlatformTheme {
-  primaryColor: string;    // or par défaut #D4AF37
+  primaryColor: string;
   primaryColorDark: string;
-  backgroundColor: string; // noir par défaut #0a0a0a
+  backgroundColor: string;
   surfaceColor: string;
   accentColor: string;
   logoUrl?: string;
@@ -98,8 +100,8 @@ export interface PlatformTheme {
 }
 
 export interface PlatformSettings {
-  creditToUsdRate: number;      // ex: 1 crédit = 0.001 USD
-  fcfaToUsdRate: number;        // taux de change FCFA -> USD utilisé pour la conversion
+  creditToUsdRate: number;
+  fcfaToUsdRate: number;
   minPurchaseFcfa: number;
   theme: PlatformTheme;
 }
