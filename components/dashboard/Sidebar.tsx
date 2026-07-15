@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, KeyRound, History, Wallet, User, LogOut, Sparkles, MessageSquare, Menu, X } from "lucide-react";
+import { LayoutDashboard, KeyRound, History, Wallet, User, LogOut, Sparkles, MessageSquare, Menu, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { cn } from "@/lib/utils/cn";
 
@@ -30,12 +30,16 @@ export function DashboardSidebar() {
   const pathname = usePathname();
   const { signOut } = useAuth();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Contenu mutualisé entre la sidebar desktop et le drawer mobile
-  const SidebarContent = () => (
+  const SidebarContent = ({ isDesktop = false }: { isDesktop?: boolean }) => (
     <>
-      <div className="flex items-center justify-between mb-10 px-2">
-        <Link href="/" className="flex items-center gap-2">
+      <div className={cn(
+        "flex items-center mb-10 px-2",
+        isDesktop && isCollapsed ? "justify-center" : "justify-between"
+      )}>
+        <Link href="/" className={cn("flex items-center", isDesktop && isCollapsed ? "justify-center" : "gap-2")}>
           <Image 
             src="/icons/icon-192.png" 
             alt="VerzaRoute Logo" 
@@ -62,16 +66,24 @@ export function DashboardSidebar() {
             <Link
               key={href}
               href={href}
-              onClick={() => setIsMobileSidebarOpen(false)}
+              onClick={() => {
+                setIsMobileSidebarOpen(false);
+              }}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                "flex items-center rounded-lg px-3 py-2.5 text-sm transition-colors group relative",
+                isDesktop && isCollapsed ? "justify-center" : "gap-3",
                 active
                   ? "bg-gold/10 text-gold border border-gold/20"
                   : "text-white/60 hover:text-white hover:bg-white/5"
               )}
             >
-              <Icon size={18} />
-              {label}
+              <Icon size={18} className="shrink-0" />
+              {!(isDesktop && isCollapsed) && <span>{label}</span>}
+              {isDesktop && isCollapsed && (
+                <div className="absolute left-full ml-2 px-2 py-1 bg-obsidian-card border border-white/10 rounded-md text-xs text-white opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">
+                  {label}
+                </div>
+              )}
             </Link>
           );
         })}
@@ -82,10 +94,13 @@ export function DashboardSidebar() {
           signOut();
           setIsMobileSidebarOpen(false);
         }}
-        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/50 hover:text-red-400 hover:bg-red-500/5 transition-colors mt-auto"
+        className={cn(
+          "flex items-center rounded-lg px-3 py-2.5 text-sm text-white/50 hover:text-red-400 hover:bg-red-500/5 transition-colors mt-auto",
+          isDesktop && isCollapsed ? "justify-center" : "gap-3"
+        )}
       >
-        <LogOut size={18} />
-        Déconnexion
+        <LogOut size={18} className="shrink-0" />
+        {!(isDesktop && isCollapsed) && <span>Déconnexion</span>}
       </button>
     </>
   );
@@ -127,9 +142,21 @@ export function DashboardSidebar() {
         </div>
       )}
 
-      {/* 3. Sidebar Desktop */}
-      <aside className="hidden md:flex md:flex-col w-64 shrink-0 border-r border-white/10 bg-obsidian-card min-h-screen p-5">
-        <SidebarContent />
+      {/* 3. Sidebar Desktop avec bouton de réduction */}
+      <aside className={cn(
+        "hidden md:flex md:flex-col shrink-0 border-r border-white/10 bg-obsidian-card min-h-screen p-5 transition-all duration-300 relative group",
+        isCollapsed ? "w-20" : "w-64"
+      )}>
+        {/* Bouton pour réduire/agrandir - visible au survol ou toujours */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="absolute -right-3 top-8 h-6 w-6 rounded-full bg-gold-gradient text-obsidian border-2 border-obsidian-card flex items-center justify-center hover:scale-110 transition-transform z-10 shadow-lg"
+          aria-label={isCollapsed ? "Agrandir la sidebar" : "Réduire la sidebar"}
+        >
+          {isCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+        </button>
+
+        <SidebarContent isDesktop />
       </aside>
 
       {/* 4. Menu du bas sur mobile (Bottom Navigation) */}
