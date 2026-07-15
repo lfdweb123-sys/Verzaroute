@@ -41,8 +41,11 @@ export function Footer() {
   return (
     <footer className="border-t border-white/10 mt-6">
       <div className="mx-auto max-w-7xl px-5 sm:px-6 py-10 sm:py-14">
-        <div className="flex flex-col gap-8 mb-10">
-          <div className="max-w-[280px]">
+        {/* Grille responsive : 1 col mobile → 2 cols tablette → 4 cols desktop */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+          
+          {/* Colonne Logo + Description (prend toute la largeur sur mobile/tablette, 1/4 sur desktop) */}
+          <div className="sm:col-span-2 lg:col-span-1">
             <Link href="/" className="inline-block shrink-0">
               <Image 
                 src="/icons/icon-192.png" 
@@ -54,26 +57,25 @@ export function Footer() {
               />
             </Link>
             
-            <p className="mt-4 text-xs text-white/40 leading-relaxed">
+            <p className="mt-4 text-xs text-white/40 leading-relaxed max-w-[280px]">
               L&apos;infrastructure API qui connecte l&apos;Afrique aux modèles de fondation mondiaux.
               Propulsé par une ingénierie de pointe.
             </p>
           </div>
           
-          <div className="flex flex-col gap-8">
-            {columns.map((col) => (
-              <div key={col.title}>
-                <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-3">{col.title}</p>
-                <ul className="space-y-2">
-                  {col.links.map((l) => (
-                    <li key={l.label}>
-                      <Link href={l.href} className="text-sm text-white/60 hover:text-gold transition-colors">{l.label}</Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+          {/* Colonnes de liens */}
+          {columns.map((col) => (
+            <div key={col.title}>
+              <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-3">{col.title}</p>
+              <ul className="space-y-2">
+                {col.links.map((l) => (
+                  <li key={l.label}>
+                    <Link href={l.href} className="text-sm text-white/60 hover:text-gold transition-colors">{l.label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-white/10">
