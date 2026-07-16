@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
   const startedAt = Date.now();
 
   try {
-    const result = await generateImage(model.provider, { model: modelId, prompt, size });
+    const result = await generateImage(model.provider, { model: model.apiModelId ?? modelId, prompt, size });
 
     const creditsCharged = computeImageCreditsCharged({ model, creditToUsdRate: settings.creditToUsdRate });
 

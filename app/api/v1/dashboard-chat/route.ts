@@ -88,10 +88,11 @@ export async function POST(req: NextRequest) {
   const settings = await getPlatformSettings();
   const adapter = getProviderAdapter(model.provider);
   const startedAt = Date.now();
+  const providerModelId = model.apiModelId ?? modelId;
 
   try {
     const result = await adapter.chat({
-      model: modelId,
+      model: providerModelId,
       messages,
       temperature: 0.7,
       max_tokens: 1024,

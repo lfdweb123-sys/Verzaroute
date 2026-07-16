@@ -60,7 +60,7 @@ export async function createVideoJob(params: {
   await ref.set(baseJob);
 
   try {
-    const { operationName } = await submitVideoGeneration({ model: params.modelId, prompt: params.prompt });
+    const { operationName } = await submitVideoGeneration({ model: params.model.apiModelId ?? params.modelId, prompt: params.prompt });
     await ref.update({ status: "processing", providerOperationId: operationName, updatedAt: Date.now() });
     return { ...baseJob, status: "processing", providerOperationId: operationName };
   } catch (error) {

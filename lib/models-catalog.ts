@@ -4,11 +4,12 @@
  * et affichées sur la page d'accueil. La marge et l'activation sont ensuite pilotables
  * depuis le dashboard admin (/admin/dashboard/models), Firestore reste la source de vérité en prod.
  *
- * IMPORTANT : le champ `id` (généré par scripts/seed.ts à partir de displayName) doit
- * correspondre EXACTEMENT à l'identifiant de modèle attendu par l'API du fournisseur.
- * Ces identifiants ont été vérifiés par recherche web (juillet 2026) suite à plusieurs
- * erreurs 404/400 "Unknown Model" en production causées par des noms de modèles obsolètes
- * ou mal formatés (points remplacés par des tirets, versions dépréciées, etc.).
+ * IMPORTANT : `apiModelId` est l'identifiant EXACT envoyé à l'API du fournisseur — il est
+ * DIFFÉRENT de `id` (qui est un simple slug généré depuis displayName pour servir de clé
+ * de document Firestore, ex: "Gemini 2.5 Flash" → "gemini-2-5-flash" avec des tirets).
+ * Sans ce champ séparé, le slug était envoyé tel quel au fournisseur, ce qui cassait
+ * systématiquement les appels (ex: "gemini-2-5-flash" au lieu de "gemini-2.5-flash").
+ * Ces identifiants ont été vérifiés par recherche web (juillet 2026).
  */
 import type { AiModel } from "@/types";
 
@@ -16,6 +17,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   {
     provider: "openai",
     displayName: "GPT-5",
+    apiModelId: "gpt-5",
     description: "Le modèle phare d'OpenAI : raisonnement avancé, code, multimodal.",
     contextWindow: 256000,
     inputPricePerMTokUsd: 3,
@@ -27,6 +29,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   {
     provider: "openai",
     displayName: "GPT-5 mini",
+    apiModelId: "gpt-5-mini",
     description: "Version rapide et économique de GPT-5 pour un usage quotidien.",
     contextWindow: 128000,
     inputPricePerMTokUsd: 0.4,
@@ -38,6 +41,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   {
     provider: "anthropic",
     displayName: "Claude Sonnet 5",
+    apiModelId: "claude-sonnet-4-6",
     description: "Excellent équilibre qualité/vitesse d'Anthropic, très fort en code et rédaction.",
     contextWindow: 200000,
     inputPricePerMTokUsd: 3,
@@ -49,6 +53,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   {
     provider: "anthropic",
     displayName: "Claude Haiku 4.5",
+    apiModelId: "claude-haiku-4-5-20251001",
     description: "Modèle Anthropic rapide et peu coûteux pour les tâches simples à grande échelle.",
     contextWindow: 200000,
     inputPricePerMTokUsd: 0.8,
@@ -60,6 +65,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   {
     provider: "google",
     displayName: "Gemini 2.5 Pro",
+    apiModelId: "gemini-2.5-pro",
     description: "Modèle multimodal de Google, très grande fenêtre de contexte.",
     contextWindow: 1000000,
     inputPricePerMTokUsd: 1.25,
@@ -71,6 +77,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   {
     provider: "google",
     displayName: "Gemini 2.5 Flash",
+    apiModelId: "gemini-2.5-flash",
     description: "Version rapide de Gemini, idéale pour les applications temps réel.",
     contextWindow: 1000000,
     inputPricePerMTokUsd: 0.15,
@@ -82,6 +89,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   {
     provider: "xai",
     displayName: "Grok 4",
+    apiModelId: "grok-4",
     description: "Modèle de xAI, orienté raisonnement et actualité en temps réel.",
     contextWindow: 128000,
     inputPricePerMTokUsd: 3,
@@ -93,6 +101,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   {
     provider: "deepseek",
     displayName: "DeepSeek V3",
+    apiModelId: "deepseek-chat",
     description: "Modèle chinois open-weight très performant en code et mathématiques, coût réduit.",
     contextWindow: 128000,
     inputPricePerMTokUsd: 0.27,
@@ -104,6 +113,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   {
     provider: "mistral",
     displayName: "Mistral Large",
+    apiModelId: "mistral-large-latest",
     description: "Modèle européen (France) performant en multilingue et raisonnement.",
     contextWindow: 128000,
     inputPricePerMTokUsd: 2,
@@ -115,6 +125,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   {
     provider: "moonshot",
     displayName: "Kimi K2.6",
+    apiModelId: "kimi-k2.6",
     description: "Modèle de Moonshot AI, très bon en agents et longues conversations.",
     contextWindow: 256000,
     inputPricePerMTokUsd: 0.6,
@@ -126,6 +137,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   {
     provider: "minimax",
     displayName: "MiniMax M2",
+    apiModelId: "MiniMax-M2",
     description: "Modèle chinois polyvalent, bon rapport qualité/prix.",
     contextWindow: 204800,
     inputPricePerMTokUsd: 0.3,
@@ -136,18 +148,20 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   },
   {
     provider: "zai",
-    displayName: "GLM-4.6",
-    description: "Modèle Z.ai (Zhipu), fort en code et en usage agentique.",
-    contextWindow: 200000,
-    inputPricePerMTokUsd: 0.5,
-    outputPricePerMTokUsd: 2,
+    displayName: "GLM-4.5 Flash",
+    apiModelId: "glm-4.5-flash",
+    description: "Modèle Z.ai (Zhipu), rapide et économique, fort en code et en usage agentique.",
+    contextWindow: 128000,
+    inputPricePerMTokUsd: 0.1,
+    outputPricePerMTokUsd: 0.3,
     marginPercent: 25,
     enabled: true,
-    tags: ["code", "agents"],
+    tags: ["code", "agents", "économique"],
   },
   {
     provider: "stepfun",
     displayName: "Step 2",
+    apiModelId: "step-2-16k",
     description: "Modèle StepFun, performant en raisonnement multimodal.",
     contextWindow: 128000,
     inputPricePerMTokUsd: 0.5,
@@ -159,6 +173,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   {
     provider: "openai",
     displayName: "GPT Image 1",
+    apiModelId: "gpt-image-1",
     description: "Modèle de génération d'image d'OpenAI, haute fidélité et bonne compréhension des prompts détaillés.",
     contextWindow: 0,
     inputPricePerMTokUsd: 0,
@@ -172,6 +187,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   {
     provider: "google",
     displayName: "Imagen 4",
+    apiModelId: "imagen-4.0-generate-001",
     description: "Modèle de génération d'image de Google, excellent rendu photoréaliste.",
     contextWindow: 0,
     inputPricePerMTokUsd: 0,
@@ -185,6 +201,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   {
     provider: "xai",
     displayName: "Grok Image",
+    apiModelId: "grok-2-image",
     description: "Modèle de génération d'image de xAI, style créatif et réactif.",
     contextWindow: 0,
     inputPricePerMTokUsd: 0,
@@ -198,6 +215,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   {
     provider: "google",
     displayName: "Veo 3.1",
+    apiModelId: "veo-3.1-generate-preview",
     description: "Modèle de génération vidéo de Google, à partir d'un simple prompt texte. Génération asynchrone (30s à quelques minutes).",
     contextWindow: 0,
     inputPricePerMTokUsd: 0,

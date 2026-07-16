@@ -39,6 +39,15 @@ export interface AiModel {
   modality?: "text" | "image" | "video";
   pricePerImageUsd?: number;
   pricePerVideoSecondUsd?: number;
+  /**
+   * Identifiant EXACT attendu par l'API du fournisseur (ex: "gemini-2.5-flash",
+   * "mistral-large-latest"). DIFFÉRENT de `id`, qui est un slug utilisé comme clé
+   * de document Firestore et généré en remplaçant tout caractère non-alphanumérique
+   * par un tiret (donc "Gemini 2.5 Flash" → id "gemini-2-5-flash", ce qui casserait
+   * l'appel réel à l'API si on l'utilisait tel quel). Si absent, on retombe sur `id`
+   * par compatibilité, mais tout nouveau modèle doit définir ce champ explicitement.
+   */
+  apiModelId?: string;
 }
 
 export type ProviderId =

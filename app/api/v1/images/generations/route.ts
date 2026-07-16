@@ -111,8 +111,8 @@ export async function POST(req: NextRequest) {
   const startedAt = Date.now();
 
   try {
-    const result = await generateImage(model.provider, {
-      model: body.model,
+const result = await generateImage(model.provider, {
+      model: model.apiModelId ?? body.model,
       prompt: body.prompt,
       size: body.size,
     });
