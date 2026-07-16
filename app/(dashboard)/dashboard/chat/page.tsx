@@ -100,6 +100,7 @@ function ChatContent() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const q = query(collection(db, "models"), orderBy("displayName"));
@@ -207,6 +208,7 @@ function ChatContent() {
     setAttachments([]);
     setError(null);
     setLoading(true);
+    if (textareaRef.current) textareaRef.current.style.height = "24px";
 
     try {
       const res = await fetch("/api/v1/dashboard-chat", {
@@ -433,13 +435,19 @@ function ChatContent() {
             {/* Textarea */}
             <div className="px-3 sm:px-4 pt-1">
               <textarea
+                ref={textareaRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  const el = e.target;
+                  el.style.height = "24px";
+                  el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+                }}
                 onKeyDown={handleKeyDown}
                 placeholder="Posez n'importe quelle question..."
                 rows={1}
-                className="w-full resize-none bg-transparent text-white outline-none leading-relaxed placeholder:text-white/40 text-sm sm:text-base max-h-24 sm:max-h-32"
-                style={{ minHeight: "24px" }}
+                className="w-full resize-none bg-transparent text-white outline-none leading-relaxed placeholder:text-white/40 text-sm sm:text-base max-h-24 sm:max-h-32 overflow-y-auto"
+                style={{ minHeight: "24px", height: "24px" }}
               />
             </div>
 
