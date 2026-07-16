@@ -111,8 +111,7 @@ export default function VideosPage() {
         {models.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-obsidian-card p-6 text-center">
             <p className="text-white/50 text-sm">
-              Aucun modèle de génération vidéo disponible pour le moment. Si tu es admin, vérifie que
-              le catalogue a bien été mis à jour (<code className="text-gold">npx tsx scripts/seed.ts</code>).
+              Aucun modèle de génération vidéo disponible pour le moment.
             </p>
           </div>
         ) : (

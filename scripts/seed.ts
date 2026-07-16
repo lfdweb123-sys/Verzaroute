@@ -1,9 +1,9 @@
 /**
- * Script à exécuter après une mise à jour du catalogue de modèles, en local :
+ * Script à exécuter UNE FOIS après la création du projet Firebase, en local :
  *   npx tsx scripts/seed.ts
  *
  * Il faut que les variables FIREBASE_ADMIN_* soient présentes dans .env.local
- * (chargé via `dotenv` ci-dessous).
+ * (charge via `dotenv` ci-dessous).
  *
  * IMPORTANT : en ESM/TypeScript, les `import` statiques sont hissés en haut du
  * fichier et exécutés avant le reste du code, même s'ils sont écrits après
@@ -15,28 +15,11 @@
  * est correct.
  *
  * Actions effectuées :
- * 1. Suppression des anciens documents de modèles devenus obsolètes (slugs
- *    générés depuis d'anciens displayName contenant des identifiants de modèle
- *    invalides) — sinon ils restent en base comme doublons cassés à côté des
- *    nouveaux documents corrigés, puisque le slug (donc l'id du document)
- *    change quand le displayName change.
- * 2. Seed de la collection `models` avec le catalogue à jour de MODELS_CATALOG
- * 3. Création du document `settings/platform` avec les valeurs par défaut (thème noir/or)
+ * 1. Seed de la collection `models` avec le catalogue de MODELS_CATALOG
+ * 2. Création du document `settings/platform` avec les valeurs par défaut (thème noir/or)
  */
 import * as dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
-
-// Anciens identifiants de documents (slugs) à supprimer car issus de displayName
-// désormais renommés — sans ce nettoyage, ils resteraient en base comme entrées
-// mortes utilisant des identifiants de modèle invalides côté fournisseur.
-const OBSOLETE_MODEL_IDS = [
-  "mistral-large-2",
-  "gemini-2-5-flash",
-  "gemini-2-5-pro",
-  "veo-3",
-  "kimi-k2",
-  "glm-4-6-z-ai", // ancien slug si le displayName incluait "(Z.ai)"
-];
 
 async function main() {
   console.log("🌱 Initialisation de Firestore pour VerzaRoute...");
@@ -44,26 +27,20 @@ async function main() {
   const { adminDb } = await import("../lib/firebase/admin");
   const { MODELS_CATALOG } = await import("../lib/models-catalog");
 
-  // --- Nettoyage des anciens documents obsolètes ---
-  const cleanupBatch = adminDb.batch();
-  let cleanupCount = 0;
-  for (const oldId of OBSOLETE_MODEL_IDS) {
-    const ref = adminDb.collection("models").doc(oldId);
-    const snap = await ref.get();
-    if (snap.exists) {
-      cleanupBatch.delete(ref);
-      cleanupCount++;
-      console.log(`🗑️  Suppression de l'ancien document obsolète: ${oldId}`);
-    }
-  }
-  if (cleanupCount > 0) {
-    await cleanupBatch.commit();
-    console.log(`✅ ${cleanupCount} ancien(s) document(s) obsolète(s) supprimé(s).`);
-  } else {
-    console.log("ℹ️  Aucun document obsolète à nettoyer.");
+  // --- Nettoyage de l'ancien document orphelin "imagen-4" ---
+  // Ce document a été créé quand le modèle s'appelait "Imagen 4" (apiModelId
+  // imagen-4.0-generate-001, déprécié par Google). Il a été renommé en "Gemini
+  // Flash Image" (apiModelId gemini-2.5-flash-image), ce qui change le slug/id du
+  // document — l'ancien reste donc orphelin en base et continue d'être utilisé
+  // tant qu'il n'est pas supprimé explicitement.
+  const obsoleteImagenRef = adminDb.collection("models").doc("imagen-4");
+  const obsoleteImagenSnap = await obsoleteImagenRef.get();
+  if (obsoleteImagenSnap.exists) {
+    await obsoleteImagenRef.delete();
+    console.log("🗑️  Ancien document obsolète 'imagen-4' supprimé.");
   }
 
-  // --- Seed des modèles à jour ---
+  // --- Seed des modèles ---
   const batch = adminDb.batch();
   for (const model of MODELS_CATALOG) {
     const id = model.displayName

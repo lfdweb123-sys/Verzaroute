@@ -7,7 +7,6 @@ const PROVIDER_LABELS: Record<ProviderId, string> = {
   minimax: "MiniMax", zai: "Z.ai", stepfun: "StepFun", meta: "Meta AI (Llama)",
 };
 
-// Accent coloré discret par fournisseur, utilisé sur la barre supérieure de chaque carte
 const PROVIDER_ACCENT: Record<ProviderId, string> = {
   openai: "from-emerald-400/70 to-emerald-400/0",
   anthropic: "from-orange-400/70 to-orange-400/0",
@@ -22,11 +21,20 @@ const PROVIDER_ACCENT: Record<ProviderId, string> = {
   meta: "from-blue-500/70 to-blue-500/0",
 };
 
-const FEATURED_IDS = ["GPT-5", "Claude Sonnet 5", "Gemini 2.5 Pro", "DeepSeek V3"];
+const FEATURED_IDS = [
+  "GPT-5.5 Pro",
+  "Claude Sonnet 5",
+  "Gemini 3.1 Pro",
+  "DeepSeek V3",
+  "Grok 4",
+  "Mistral Large",
+  "Kimi K2.6",
+  "Llama 3.3 70B",
+];
 const POPULAR_MODEL = "Claude Sonnet 5";
 
 export function ModelsShowcase() {
-  const featured = MODELS_CATALOG.filter((m) => FEATURED_IDS.includes(m.displayName)).slice(0, 4);
+  const featured = MODELS_CATALOG.filter((m) => FEATURED_IDS.includes(m.displayName)).slice(0, 8);
   const totalModels = MODELS_CATALOG.length;
 
   return (
@@ -55,7 +63,6 @@ export function ModelsShowcase() {
                 isPopular ? "border-gold/40" : "border-white/10 hover:border-white/20"
               }`}
             >
-              {/* Barre d'accent colorée par fournisseur, en haut de la carte */}
               <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${PROVIDER_ACCENT[model.provider]}`} />
 
               {isPopular && (
@@ -97,11 +104,11 @@ export function ModelsShowcase() {
       </div>
 
       <div className="mt-8 text-center">
-        <a
-          href="/register"
+        
+        <a  href="/register"
           className="inline-flex items-center gap-1.5 text-sm text-gold hover:gap-2.5 transition-all"
         >
-          Voir les {totalModels - 4}+ autres modèles <span aria-hidden>→</span>
+          Voir les {totalModels - 8}+ autres modèles <span aria-hidden>→</span>
         </a>
       </div>
     </section>

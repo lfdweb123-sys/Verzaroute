@@ -54,8 +54,7 @@ export default function ModelsPage() {
           <p className="text-white/50 text-sm">Chargement des modèles...</p>
         ) : models.length === 0 ? (
           <p className="text-white/50 text-sm">
-            Aucun modèle disponible pour le moment. Si tu es admin, lance le script de seed
-            (<code className="text-gold">npx tsx scripts/seed.ts</code>) pour peupler le catalogue.
+            Aucun modèle disponible pour le moment.
           </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
