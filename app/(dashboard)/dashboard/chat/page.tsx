@@ -72,11 +72,6 @@ function MarkdownText({ text }: { text: string }) {
 
 const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024;
 const MAX_ATTACHMENTS = 4;
-// Hauteur fixe du textarea : on ne laisse plus le champ grandir avec le contenu,
-// pour que la barre d'envoi garde toujours la même taille/longueur, qu'on soit
-// en écran d'accueil ou en pleine conversation scrollée.
-const TEXTAREA_HEIGHT_PX = 24;
-const TEXTAREA_MAX_HEIGHT_PX = 96;
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -241,7 +236,7 @@ function ChatContent() {
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && e.altKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -435,9 +430,7 @@ function ChatContent() {
               )}
             </div>
 
-            {/* Textarea : hauteur fixe (min = max par défaut), avec un léger débordement
-                scrollable si le texte dépasse — le champ ne grandit plus visuellement,
-                donc la barre garde toujours la même taille/longueur. */}
+            {/* Textarea */}
             <div className="px-3 sm:px-4 pt-1">
               <textarea
                 value={input}
@@ -445,8 +438,8 @@ function ChatContent() {
                 onKeyDown={handleKeyDown}
                 placeholder="Posez n'importe quelle question..."
                 rows={1}
-                className="w-full resize-none bg-transparent text-white outline-none leading-relaxed placeholder:text-white/40 text-sm sm:text-base overflow-y-auto"
-                style={{ height: TEXTAREA_HEIGHT_PX, maxHeight: TEXTAREA_MAX_HEIGHT_PX }}
+                className="w-full resize-none bg-transparent text-white outline-none leading-relaxed placeholder:text-white/40 text-sm sm:text-base max-h-24 sm:max-h-32"
+                style={{ minHeight: "24px" }}
               />
             </div>
 
@@ -481,7 +474,7 @@ function ChatContent() {
 
               <div className="flex items-center gap-2 sm:gap-3">
                 <span className="hidden sm:inline text-[10px] text-white/30 uppercase tracking-wide">
-                  Alt + Entrée pour envoyer
+                  Entrée pour envoyer · Maj + Entrée pour un retour à la ligne
                 </span>
                 <button
                   onClick={handleSend}
