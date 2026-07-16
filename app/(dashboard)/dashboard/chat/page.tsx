@@ -199,15 +199,15 @@ function ChatContent() {
         <DashboardTopBar title="Discuter avec un modèle" />
       </div>
 
-      {/* Container principal - centrage dynamique */}
+      {/* Container principal */}
       <div className={cn(
         "flex flex-col transition-all duration-500 ease-in-out",
         hasStartedConversation 
           ? "h-[calc(100vh-4rem)]" 
-          : "min-h-screen justify-center"
+          : "h-[calc(100vh-4rem)] justify-center"
       )}>
         
-        {/* Sélecteur de modèle - caché quand pas de conversation */}
+        {/* Sélecteur de modèle - visible uniquement quand conversation démarrée */}
         {hasStartedConversation && (
           <div className="border-b border-white/10 p-2 sm:p-3 md:p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 bg-obsidian-card">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -316,11 +316,11 @@ function ChatContent() {
           </div>
         )}
 
-        {/* Zone de saisie - positionnement dynamique */}
+        {/* Zone de saisie - position dynamique selon état */}
         <div className={cn(
           "transition-all duration-500 ease-in-out",
           hasStartedConversation
-            ? "border-t border-white/10 p-2 sm:p-3 md:p-4 flex items-end gap-2 sm:gap-2 md:gap-3 bg-obsidian-card"
+            ? "border-t border-white/10 p-2 sm:p-3 md:p-4 bg-obsidian-card"
             : "p-4"
         )}>
           <input
@@ -331,98 +331,67 @@ function ChatContent() {
             onChange={handleFileSelect}
             className="hidden"
           />
-          
-          {/* Bouton + (visible seulement sans conversation) */}
-          {!hasStartedConversation && (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={attachments.length >= MAX_ATTACHMENTS}
-              className="shrink-0 rounded-xl border border-white/15 p-2 sm:p-2.5 md:p-3 text-white/60 hover:text-gold hover:border-gold/40 transition-colors disabled:opacity-40"
-              aria-label="Joindre un fichier"
-              title="Joindre une image ou un document"
-            >
-              <Paperclip size={16} className="sm:w-[18px] sm:h-[18px]" />
-            </button>
-          )}
 
-          {/* Input principal - design comme l'image */}
-          <div className={cn(
-            "flex items-center gap-3 rounded-2xl border transition-colors",
-            hasStartedConversation
-              ? "flex-1 border-white/15 bg-obsidian px-2.5 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3"
-              : "w-full max-w-2xl mx-auto border-white/10 bg-obsidian-card px-5 py-4 hover:border-white/20"
-          )}>
-            {/* Bouton + dans l'input (visible avec conversation) */}
-            {hasStartedConversation && (
+          {/* Layout quand pas de conversation - design comme l'image */}
+          {!hasStartedConversation && (
+            <div className="relative flex items-center justify-center">
+              {/* Bouton paperclip flottant en haut à gauche */}
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={attachments.length >= MAX_ATTACHMENTS}
-                className="shrink-0 rounded-xl p-2 text-white/60 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-40"
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 sm:-translate-x-8 shrink-0 rounded-xl border border-white/15 bg-obsidian-card p-2.5 text-white/60 hover:text-gold hover:border-gold/40 transition-colors disabled:opacity-40"
                 aria-label="Joindre un fichier"
+                title="Joindre une image ou un document"
               >
                 <Paperclip size={16} />
               </button>
-            )}
 
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={hasStartedConversation ? "Écris ton message..." : "Tapez / pour les compétences"}
-              rows={1}
-              className={cn(
-                "resize-none bg-transparent text-white outline-none leading-relaxed",
-                hasStartedConversation
-                  ? "flex-1 placeholder:text-white/40 text-xs sm:text-sm max-h-24 sm:max-h-32"
-                  : "flex-1 placeholder:text-white/40 text-lg max-h-24"
-              )}
-              style={{ minHeight: "24px" }}
-            />
-
-            {/* Controls droite (visibles seulement avec conversation) */}
-            {hasStartedConversation && (
-              <div className="flex items-center gap-1 shrink-0">
-                <select
-                  value={selectedModel}
-                  onChange={(e) => {
-                    setSelectedModel(e.target.value);
-                    setMessages([]);
-                  }}
-                  className="hidden md:block rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-white outline-none focus:border-gold/50 cursor-pointer"
-                >
-                  {models.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.displayName}
-                    </option>
-                  ))}
-                </select>
-                
-                {currentModel && (
-                  <span className="hidden md:inline text-xs text-white/40 px-2">Moyen</span>
-                )}
-
-                <button
-                  className="rounded-xl p-2 text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-                  aria-label="Entrée vocale"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                </button>
-
-                <button
-                  className="rounded-xl p-2 text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-                  aria-label="Lecture audio"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                  </svg>
-                </button>
+              {/* Champ de saisie centré */}
+              <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-obsidian-card px-5 py-3 hover:border-white/20 transition-colors">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Tapez / pour les compétences"
+                  rows={1}
+                  className="w-full resize-none bg-transparent text-white placeholder:text-white/40 outline-none text-base leading-relaxed"
+                  style={{ minHeight: "24px", maxHeight: "200px" }}
+                />
               </div>
-            )}
 
-            {/* Bouton envoyer (visible seulement avec conversation) */}
-            {hasStartedConversation && (
+              {/* Bouton envoyer flottant en bas à gauche */}
+              <button
+                onClick={handleSend}
+                disabled={loading || (!input.trim() && attachments.length === 0) || !selectedModel}
+                className="absolute left-0 top-1/2 translate-y-4 -translate-x-4 sm:-translate-x-8 shrink-0 rounded-xl bg-gold-gradient p-2.5 text-obsidian hover:scale-[1.05] transition-transform disabled:opacity-40 disabled:hover:scale-100"
+                aria-label="Envoyer"
+              >
+                <Send size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* Layout quand conversation démarrée - classique */}
+          {hasStartedConversation && (
+            <div className="flex items-end gap-2 sm:gap-2 md:gap-3 max-w-4xl mx-auto">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={attachments.length >= MAX_ATTACHMENTS}
+                className="shrink-0 rounded-xl border border-white/15 p-2 sm:p-2.5 md:p-3 text-white/60 hover:text-gold hover:border-gold/40 transition-colors disabled:opacity-40"
+                aria-label="Joindre un fichier"
+                title="Joindre une image ou un document"
+              >
+                <Paperclip size={16} className="sm:w-[18px] sm:h-[18px]" />
+              </button>
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Écris ton message..."
+                rows={1}
+                className="flex-1 resize-none rounded-xl border border-white/15 bg-obsidian px-2.5 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm text-white outline-none focus:border-gold/50 transition-colors max-h-24 sm:max-h-32"
+                style={{ minHeight: '40px' }}
+              />
               <button
                 onClick={handleSend}
                 disabled={loading || (!input.trim() && attachments.length === 0) || !selectedModel}
@@ -431,19 +400,7 @@ function ChatContent() {
               >
                 <Send size={16} className="sm:w-[18px] sm:h-[18px]" />
               </button>
-            )}
-          </div>
-
-          {/* Bouton envoyer standalone (visible seulement sans conversation) */}
-          {!hasStartedConversation && (
-            <button
-              onClick={handleSend}
-              disabled={loading || (!input.trim() && attachments.length === 0) || !selectedModel}
-              className="shrink-0 rounded-xl bg-gold-gradient p-2 sm:p-2.5 md:p-3 text-obsidian hover:scale-[1.05] transition-transform disabled:opacity-40 disabled:hover:scale-100 ml-3"
-              aria-label="Envoyer"
-            >
-              <Send size={16} className="sm:w-[18px] sm:h-[18px]" />
-            </button>
+            </div>
           )}
         </div>
       </div>
