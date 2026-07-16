@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   const settings = (settingsSnap.data() as PlatformSettings) ?? {
     creditToUsdRate: 0.001,
     fcfaToUsdRate: 610,
-    minPurchaseFcfa: 100,
+    minPurchaseFcfa: 1000,
   };
 
   if (amountFcfa < settings.minPurchaseFcfa) {
