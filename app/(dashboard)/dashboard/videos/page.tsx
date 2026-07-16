@@ -5,18 +5,23 @@ import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { DashboardTopBar } from "@/components/dashboard/TopBar";
 import type { AiModel, VideoJob } from "@/types";
-import { Film, Loader2, Sparkles, Download, AlertCircle } from "lucide-react";
+import { Film, Loader2, Sparkles, Download, AlertCircle, ChevronUp } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 
 const POLL_INTERVAL_MS = 5000;
 
 export default function VideosPage() {
   const [models, setModels] = useState<AiModel[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>("");
+  const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [jobs, setJobs] = useState<VideoJob[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pollTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const modelPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const q = query(collection(db, "models"), orderBy("displayName"));
@@ -47,6 +52,20 @@ export default function VideosPage() {
     return () => {
       Object.values(pollTimers.current).forEach(clearTimeout);
     };
+  }, []);
+
+  useEffect(() => {
+    galleryRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [jobs.length]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (modelPickerRef.current && !modelPickerRef.current.contains(e.target as Node)) {
+        setModelPickerOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   function schedulePoll(jobId: string) {
@@ -92,6 +111,7 @@ export default function VideosPage() {
       const newJob: VideoJob = data.job;
       setJobs((prev) => [newJob, ...prev]);
       setPrompt("");
+      if (textareaRef.current) textareaRef.current.style.height = "24px";
       if (newJob.status === "pending" || newJob.status === "processing") {
         schedulePoll(newJob.id);
       }
@@ -102,66 +122,43 @@ export default function VideosPage() {
     }
   }
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleGenerate();
+    }
+  }
+
   const currentModel = models.find((m) => m.id === selectedModel);
+  const hasJobs = jobs.length > 0;
 
   return (
     <>
-      <DashboardTopBar title="Générer une vidéo" />
-      <div className="p-4 sm:p-6 md:p-8 space-y-6">
+      <div className="hidden md:block">
+        <DashboardTopBar title="Générer une vidéo" />
+      </div>
+
+      <div
+        className={cn(
+          "flex flex-col w-full transition-all duration-500 ease-in-out",
+          hasJobs ? "h-[100dvh] md:h-[calc(100vh-4rem)]" : "min-h-[100dvh] justify-center px-3 sm:px-4"
+        )}
+      >
         {models.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-obsidian-card p-6 text-center">
+          <div className="max-w-2xl w-full mx-auto rounded-2xl border border-white/10 bg-obsidian-card p-6 text-center">
             <p className="text-white/50 text-sm">
-              Aucun modèle de génération vidéo disponible pour le moment.
+              Aucun modèle de génération vidéo disponible pour le moment. Si tu es admin, vérifie que
+              le catalogue a bien été mis à jour (<code className="text-gold">npx tsx scripts/seed.ts</code>).
             </p>
           </div>
         ) : (
           <>
-            <div className="rounded-2xl border border-white/10 bg-obsidian-card p-4 sm:p-6 space-y-4">
-              <select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="rounded-lg bg-obsidian border border-white/15 px-3 py-2.5 text-sm text-white outline-none focus:border-gold/50 w-full sm:w-auto"
+            {hasJobs && (
+              <div
+                ref={galleryRef}
+                className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-3 md:p-6 min-h-0"
               >
-                {models.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.displayName} — ${m.pricePerVideoSecondUsd?.toFixed(2)}/seconde
-                  </option>
-                ))}
-              </select>
-
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Décris la vidéo que tu veux générer..."
-                rows={3}
-                className="w-full resize-none rounded-lg border border-white/15 bg-obsidian px-3.5 py-2.5 text-sm text-white outline-none focus:border-gold/50 transition-colors"
-              />
-
-              {error && <p className="text-sm text-red-400">{error}</p>}
-
-              <button
-                onClick={handleGenerate}
-                disabled={submitting || !prompt.trim()}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-gold-gradient px-6 py-3 font-semibold text-obsidian hover:scale-[1.02] transition-transform disabled:opacity-50"
-              >
-                {submitting ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-                {submitting ? "Envoi en cours..." : "Générer la vidéo"}
-              </button>
-              <p className="text-xs text-white/40">
-                La génération vidéo est asynchrone et peut prendre de 30 secondes à quelques minutes.
-                {currentModel && ` Coût estimé : ~${((currentModel.pricePerVideoSecondUsd ?? 0) * 8).toFixed(2)}$ + marge pour un clip standard.`}
-              </p>
-            </div>
-
-            <div>
-              <h2 className="text-white font-semibold mb-4">Vidéos générées</h2>
-              {jobs.length === 0 ? (
-                <div className="rounded-2xl border border-white/10 bg-obsidian-card p-10 text-center">
-                  <Film size={32} className="mx-auto mb-3 text-gold/40" />
-                  <p className="text-white/40 text-sm">Aucune vidéo générée pour le moment.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {jobs.map((job) => (
                     <div key={job.id} className="rounded-2xl border border-white/10 bg-obsidian-card overflow-hidden">
                       <div className="aspect-video bg-black/40 flex items-center justify-center relative">
@@ -181,17 +178,17 @@ export default function VideosPage() {
                           </div>
                         )}
                       </div>
-                      <div className="p-3">
-                        <p className="text-xs text-white/60 line-clamp-2 mb-2">{job.prompt}</p>
+                      <div className="p-2.5 sm:p-3">
+                        <p className="text-[11px] sm:text-xs text-white/60 line-clamp-2 mb-2">{job.prompt}</p>
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] text-white/40">
+                          <span className="text-[10px] sm:text-[11px] text-white/40">
                             {job.creditsCharged ? `-${job.creditsCharged} crédits` : "—"}
                           </span>
                           {job.status === "ready" && job.videoUrl && (
                             <a
                               href={job.videoUrl}
                               download
-                              className="flex items-center gap-1 text-xs text-gold hover:underline"
+                              className="flex items-center gap-1 text-[11px] sm:text-xs text-gold hover:underline"
                             >
                               <Download size={12} /> Télécharger
                             </a>
@@ -201,6 +198,119 @@ export default function VideosPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {!hasJobs && (
+              <div className="max-w-2xl w-full mx-auto mb-6 text-center">
+                <Film size={32} className="mx-auto mb-3 text-gold/40" />
+                <p className="text-white/40 text-sm">Aucune vidéo générée pour le moment.</p>
+              </div>
+            )}
+
+            {error && (
+              <div
+                className={cn(
+                  "px-3 sm:px-4 py-2 bg-red-500/10 border-y border-red-500/20",
+                  !hasJobs && "max-w-2xl w-full mx-auto rounded-lg border mb-3"
+                )}
+              >
+                <p className="text-xs sm:text-sm text-red-400">{error}</p>
+              </div>
+            )}
+
+            <div
+              className={cn(
+                "w-full",
+                hasJobs ? "border-t border-white/10 p-2 sm:p-3 md:p-4 bg-obsidian-card" : "max-w-2xl mx-auto"
+              )}
+            >
+              <div
+                className={cn(
+                  "rounded-2xl border border-white/10 bg-obsidian-card overflow-visible",
+                  hasJobs && "border-white/15"
+                )}
+              >
+                {/* Ligne du haut : sélecteur de modèle + prix */}
+                <div className="flex items-center justify-between px-3 sm:px-4 pt-2.5 sm:pt-3 pb-1">
+                  <div className="relative" ref={modelPickerRef}>
+                    <button
+                      onClick={() => setModelPickerOpen((v) => !v)}
+                      className="flex items-center gap-1.5 text-[11px] sm:text-xs text-white/60 hover:text-white/80 transition-colors"
+                    >
+                      <span className="uppercase tracking-wide">Modèle :</span>
+                      <span className="font-medium text-white/85">{currentModel?.displayName ?? "Sélectionner"}</span>
+                      <ChevronUp size={12} className={cn("transition-transform", modelPickerOpen && "rotate-180")} />
+                    </button>
+
+                    {modelPickerOpen && (
+                      <div className="absolute left-0 bottom-full mb-2 w-64 max-h-64 overflow-y-auto rounded-xl border border-white/10 bg-obsidian shadow-xl z-50">
+                        {models.map((m) => (
+                          <button
+                            key={m.id}
+                            onClick={() => {
+                              setSelectedModel(m.id);
+                              setModelPickerOpen(false);
+                            }}
+                            className={cn(
+                              "w-full px-3 py-2 text-left text-xs sm:text-sm hover:bg-white/5 transition-colors truncate block",
+                              m.id === selectedModel ? "text-gold" : "text-white/80"
+                            )}
+                          >
+                            {m.displayName} — ${m.pricePerVideoSecondUsd?.toFixed(2)}/seconde
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {currentModel && (
+                    <span className="text-[10px] sm:text-xs text-white/40 whitespace-nowrap">
+                      ~${((currentModel.pricePerVideoSecondUsd ?? 0) * 8).toFixed(2)}$ / clip standard
+                    </span>
+                  )}
+                </div>
+
+                {/* Textarea auto-agrandissable : hauteur par défaut pour un prompt court,
+                    grandit dynamiquement pour un prompt long, avec un plafond scrollable. */}
+                <div className="px-3 sm:px-4 pt-1">
+                  <textarea
+                    ref={textareaRef}
+                    value={prompt}
+                    onChange={(e) => {
+                      setPrompt(e.target.value);
+                      const el = e.target;
+                      el.style.height = "24px";
+                      el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+                    }}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Décris la vidéo que tu veux générer..."
+                    rows={1}
+                    className="w-full resize-none bg-transparent text-white outline-none leading-relaxed placeholder:text-white/40 text-sm sm:text-base max-h-24 sm:max-h-32 overflow-y-auto"
+                    style={{ minHeight: "24px", height: "24px" }}
+                  />
+                </div>
+
+                {/* Ligne du bas : indication clavier + bouton générer */}
+                <div className="flex items-center justify-between px-2.5 sm:px-3 pb-2.5 sm:pb-3 pt-1.5 sm:pt-2">
+                  <span className="hidden sm:inline text-[10px] text-white/30 uppercase tracking-wide">
+                    Entrée pour générer · Maj + Entrée pour un retour à la ligne
+                  </span>
+                  <button
+                    onClick={handleGenerate}
+                    disabled={submitting || !prompt.trim() || !selectedModel}
+                    className="ml-auto shrink-0 rounded-xl bg-gold-gradient p-2 sm:p-2.5 text-obsidian hover:scale-[1.05] transition-transform disabled:opacity-40 disabled:hover:scale-100"
+                    aria-label="Générer la vidéo"
+                  >
+                    {submitting ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {!hasJobs && (
+                <p className="mt-2 text-center text-[10px] sm:text-xs text-white/30">
+                  La génération vidéo est asynchrone et peut prendre de 30 secondes à quelques minutes.
+                </p>
               )}
             </div>
           </>
