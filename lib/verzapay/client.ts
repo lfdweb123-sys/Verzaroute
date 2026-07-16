@@ -12,7 +12,7 @@ export interface CreatePaymentParams {
   customerEmail: string;
   customerPhone?: string;
   method: "mobile_money" | "card";
-  metadata: Record<string, string>; // on y stocke uid + credits demandés
+  metadata: Record<string, string>;
   callbackUrl: string;
   returnUrl: string;
 }
@@ -20,7 +20,7 @@ export interface CreatePaymentParams {
 export interface VerzapayPaymentResponse {
   id: string;
   status: "pending" | "completed" | "failed";
-  paymentUrl: string; // URL de paiement à laquelle rediriger l'utilisateur
+  paymentUrl: string;
   amountFcfa: number;
 }
 
@@ -28,29 +28,38 @@ export async function createVerzapayPayment(params: CreatePaymentParams): Promis
   const secretKey = process.env.VERZAPAY_SECRET_KEY;
   if (!secretKey) throw new Error("VERZAPAY_SECRET_KEY manquant dans l'environnement");
 
+  const requestBody = {
+    amount: params.amountFcfa,
+    currency: params.currency ?? "XOF",
+    customer: { email: params.customerEmail, phone: params.customerPhone },
+    payment_method: params.method,
+    metadata: params.metadata,
+    callback_url: params.callbackUrl,
+    return_url: params.returnUrl,
+  };
+
+  console.log("[VZR-VERZAPAY] Requête envoyée à", `${BASE_URL}/payments`, ":", JSON.stringify(requestBody));
+
   const res = await fetch(`${BASE_URL}/payments`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${secretKey}`,
     },
-    body: JSON.stringify({
-      amount: params.amountFcfa,
-      currency: params.currency ?? "XOF",
-      customer: { email: params.customerEmail, phone: params.customerPhone },
-      payment_method: params.method,
-      metadata: params.metadata,
-      callback_url: params.callbackUrl,
-      return_url: params.returnUrl,
-    }),
+    body: JSON.stringify(requestBody),
   });
+
+  console.log("[VZR-VERZAPAY] Statut de la réponse Verzapay:", res.status);
 
   if (!res.ok) {
     const errText = await res.text().catch(() => res.statusText);
+    console.error("[VZR-VERZAPAY] Corps complet de l'erreur Verzapay:", errText);
+    console.error("[VZR-VERZAPAY] En-têtes de la réponse:", JSON.stringify(Object.fromEntries(res.headers.entries())));
     throw new Error(`[verzapay] Erreur création paiement (${res.status}): ${errText}`);
   }
 
   const data = await res.json();
+  console.log("[VZR-VERZAPAY] Réponse de succès complète:", JSON.stringify(data));
   return {
     id: data.id,
     status: data.status,
@@ -59,11 +68,6 @@ export async function createVerzapayPayment(params: CreatePaymentParams): Promis
   };
 }
 
-/**
- * Vérifie la signature HMAC du webhook Verzapay pour s'assurer que la requête
- * provient bien de Verzapay et n'a pas été falsifiée.
- * Convention: header "X-Verzapay-Signature" = HMAC-SHA256(rawBody, VERZAPAY_WEBHOOK_SECRET) en hex.
- */
 export function verifyVerzapayWebhookSignature(rawBody: string, signatureHeader: string | null): boolean {
   const secret = process.env.VERZAPAY_WEBHOOK_SECRET;
   if (!secret || !signatureHeader) return false;
