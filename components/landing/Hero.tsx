@@ -24,11 +24,11 @@ export function Hero() {
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
           <div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-[1.1] text-white">
-              Une seule API pour tous les <span className="gold-text">modèles AI</span> mondiaux.
+              Tous les meilleurs <span className="gold-text">modèles d'IA</span>, réunis sur une seule plateforme.
             </h1>
+
             <p className="mt-5 text-base sm:text-lg text-white/60 max-w-lg">
-              VerzaRoute permet aux développeurs africains d&apos;accéder à GPT-4, Claude et Gemini
-              via une passerelle unique, payable localement en FCFA.
+              Pourquoi créer plusieurs comptes et passer d'un site à un autre pour utiliser ChatGPT, Claude, Gemini, Llama et d'autres modèles ? VerzaRoute centralise les meilleures intelligences artificielles dans une seule interface afin de discuter, créer et innover plus rapidement.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
@@ -36,13 +36,14 @@ export function Hero() {
                 href="/register"
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-gold-gradient px-6 py-3.5 font-semibold text-obsidian shadow-gold transition-transform hover:scale-[1.03]"
               >
-                Démarrer l&apos;intégration <ArrowRight size={18} />
+                Commencer gratuitement <ArrowRight size={18} />
               </Link>
+
               <Link
                 href="#comment-ca-marche"
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 px-6 py-3.5 font-semibold text-white/80 hover:border-gold/40 hover:text-white transition-colors"
               >
-                <FileText size={18} /> Documentation
+                <FileText size={18} /> Découvrir VerzaRoute
               </Link>
             </div>
           </div>
