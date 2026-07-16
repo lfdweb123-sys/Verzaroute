@@ -1,4 +1,4 @@
-export function OurVision() {
+export function Vision() {
   return (
     <section className="mx-auto max-w-4xl px-5 sm:px-6 py-16 sm:py-24 text-center">
       <span className="inline-block rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-[11px] sm:text-xs text-gold uppercase tracking-wide mb-5">

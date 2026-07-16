@@ -6,9 +6,11 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 
 const LINKS = [
+  { href: "#pourquoi", label: "Pourquoi VerzaRoute" },
   { href: "#modeles", label: "Modèles" },
   { href: "#comment-ca-marche", label: "Fonctionnalités" },
   { href: "#tarifs", label: "Tarifs" },
+  { href: "#vision", label: "Notre vision" },
 ];
 
 export function LandingNav() {
