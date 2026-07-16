@@ -35,7 +35,7 @@ const REASONS = [
 
 export function WhyVerzaRoute() {
   return (
-    <section className="mx-auto max-w-7xl px-5 sm:px-6 py-16 sm:py-24">
+    <section id="pourquoi" className="mx-auto max-w-7xl px-5 sm:px-6 py-16 sm:py-24">
       <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-start mb-14 sm:mb-16">
         <div>
           <span className="inline-block rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-[11px] sm:text-xs text-gold uppercase tracking-wide mb-4">
