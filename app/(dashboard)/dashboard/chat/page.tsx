@@ -72,6 +72,11 @@ function MarkdownText({ text }: { text: string }) {
 
 const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024;
 const MAX_ATTACHMENTS = 4;
+// Hauteur fixe du textarea : on ne laisse plus le champ grandir avec le contenu,
+// pour que la barre d'envoi garde toujours la même taille/longueur, qu'on soit
+// en écran d'accueil ou en pleine conversation scrollée.
+const TEXTAREA_HEIGHT_PX = 24;
+const TEXTAREA_MAX_HEIGHT_PX = 96;
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -321,6 +326,7 @@ function ChatContent() {
                   )}
                 </div>
 
+                {/* Bouton copier disponible pour les deux rôles (utilisateur et assistant) */}
                 <button
                   onClick={() => handleCopy(i, msg.content)}
                   className={cn(
@@ -336,7 +342,10 @@ function ChatContent() {
                       <span className="text-gold">Copié</span>
                     </>
                   ) : (
-                    <Copy size={12} />
+                    <>
+                      <Copy size={12} />
+                      <span>Copier</span>
+                    </>
                   )}
                 </button>
               </div>
@@ -426,7 +435,9 @@ function ChatContent() {
               )}
             </div>
 
-            {/* Textarea */}
+            {/* Textarea : hauteur fixe (min = max par défaut), avec un léger débordement
+                scrollable si le texte dépasse — le champ ne grandit plus visuellement,
+                donc la barre garde toujours la même taille/longueur. */}
             <div className="px-3 sm:px-4 pt-1">
               <textarea
                 value={input}
@@ -434,8 +445,8 @@ function ChatContent() {
                 onKeyDown={handleKeyDown}
                 placeholder="Posez n'importe quelle question..."
                 rows={1}
-                className="w-full resize-none bg-transparent text-white outline-none leading-relaxed placeholder:text-white/40 text-sm sm:text-base max-h-24 sm:max-h-32"
-                style={{ minHeight: "24px" }}
+                className="w-full resize-none bg-transparent text-white outline-none leading-relaxed placeholder:text-white/40 text-sm sm:text-base overflow-y-auto"
+                style={{ height: TEXTAREA_HEIGHT_PX, maxHeight: TEXTAREA_MAX_HEIGHT_PX }}
               />
             </div>
 
@@ -513,7 +524,7 @@ function ChatContent() {
 
           {!hasStartedConversation && (
             <p className="mt-2 text-center text-[10px] sm:text-xs text-white/30">
-              Assiste Intelligence peut faire des erreurs. Vérifiez les informations importantes.
+              Les réponses générées peuvent comporter des erreurs. Pensez à vérifier les informations importantes avant de les utiliser.
             </p>
           )}
         </div>
