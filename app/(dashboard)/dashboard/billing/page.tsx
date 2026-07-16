@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils/cn";
 import Link from "next/link";
 import type { UserProfile } from "@/types";
 
-const PRESET_AMOUNTS = [1000, 2500, 5000, 10000, 25000, 50000];
+const PRESET_AMOUNTS = [100, 2500, 5000, 10000, 25000, 50000];
 
 export default function BillingPage() {
   const { user } = useAuth();
