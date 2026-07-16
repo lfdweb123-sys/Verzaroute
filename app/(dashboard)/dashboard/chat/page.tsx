@@ -61,7 +61,7 @@ function ChatContent() {
   useEffect(() => {
     const q = query(collection(db, "models"), orderBy("displayName"));
     const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs.map((d) => d.data() as AiModel).filter((m) => m.enabled);
+      const list = snap.docs.map((d) => d.data() as AiModel).filter((m) => m.enabled && (!m.modality || m.modality === "text"));
       setModels(list);
       if (!selectedModel && list.length > 0) setSelectedModel(list[0].id);
     });
