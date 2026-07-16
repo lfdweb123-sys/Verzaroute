@@ -107,7 +107,7 @@ async function handlePurchase() {
           </div>
           <input
             type="number"
-            min={1000}
+            min={100}
             placeholder="Ou saisissez un montant personnalisé"
             value={customAmount}
             onChange={(e) => setCustomAmount(e.target.value)}
