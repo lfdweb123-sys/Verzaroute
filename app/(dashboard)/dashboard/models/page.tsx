@@ -85,12 +85,18 @@ export default function ModelsPage() {
                     ${model.inputPricePerMTokUsd.toFixed(2)} / ${model.outputPricePerMTokUsd.toFixed(2)}
                     <span className="block">par 1M tokens (in/out)</span>
                   </p>
-                  <Link
-                    href={`/dashboard/chat?model=${model.id}`}
-                    className="flex items-center gap-1.5 rounded-lg bg-gold-gradient px-3 py-2 text-xs font-semibold text-obsidian hover:scale-[1.03] transition-transform"
-                  >
-                    <MessageSquare size={14} /> Discuter
-                  </Link>
+                  {(() => {
+                    const action = getActionFor(model);
+                    const ActionIcon = action.icon;
+                    return (
+                      <Link
+                        href={action.href}
+                        className="flex items-center gap-1.5 rounded-lg bg-gold-gradient px-3 py-2 text-xs font-semibold text-obsidian hover:scale-[1.03] transition-transform"
+                      >
+                        <ActionIcon size={14} /> {action.label}
+                      </Link>
+                    );
+                  })()}
                 </div>
               </div>
             ))}
