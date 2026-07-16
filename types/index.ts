@@ -60,7 +60,8 @@ export type ProviderId =
   | "moonshot"
   | "minimax"
   | "zai"
-  | "stepfun";
+  | "stepfun"
+  | "meta";
 
 export interface UsageLog {
   id: string;

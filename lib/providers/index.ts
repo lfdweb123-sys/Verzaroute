@@ -43,7 +43,7 @@ function buildRegistry(): Record<ProviderId, AiProviderAdapter> {
     }),
     minimax: createOpenAiCompatibleAdapter({
       id: "minimax",
-      baseUrl: "https://api.minimax.io/v1",
+      baseUrl: "https://api.minimax.chat/v1",
       apiKey: process.env.MINIMAX_API_KEY,
     }),
     zai: createOpenAiCompatibleAdapter({
@@ -55,6 +55,13 @@ function buildRegistry(): Record<ProviderId, AiProviderAdapter> {
       id: "stepfun",
       baseUrl: "https://api.stepfun.com/v1",
       apiKey: process.env.STEPFUN_API_KEY,
+    }),
+    // Meta ne propose pas d'API publique officielle pour Llama — on passe par Together AI,
+    // hébergeur tiers compatible OpenAI, largement utilisé pour servir les modèles Llama.
+    meta: createOpenAiCompatibleAdapter({
+      id: "meta",
+      baseUrl: "https://api.together.xyz/v1",
+      apiKey: process.env.META_API_KEY,
     }),
   };
 }

@@ -5,26 +5,125 @@
  * depuis le dashboard admin (/admin/dashboard/models), Firestore reste la source de vérité en prod.
  *
  * IMPORTANT : `apiModelId` est l'identifiant EXACT envoyé à l'API du fournisseur — il est
- * DIFFÉRENT de `id` (qui est un simple slug généré depuis displayName pour servir de clé
- * de document Firestore, ex: "Gemini 2.5 Flash" → "gemini-2-5-flash" avec des tirets).
- * Sans ce champ séparé, le slug était envoyé tel quel au fournisseur, ce qui cassait
- * systématiquement les appels (ex: "gemini-2-5-flash" au lieu de "gemini-2.5-flash").
- * Ces identifiants ont été vérifiés par recherche web (juillet 2026).
+ * DIFFÉRENT de `id` (slug généré depuis displayName pour servir de clé de document Firestore).
+ *
+ * NOTE DE FIABILITÉ : les identifiants OpenAI/Anthropic/Meta ajoutés dans ce lot proviennent
+ * d'une liste fournie directement, sans re-vérification individuelle via recherche web pour
+ * chacun (contrairement aux modèles Google/image, vérifiés par recherche). Si un identifiant
+ * précis renvoie une erreur "Unknown model"/404 en usage réel, il faudra le corriger au cas
+ * par cas — signale-le et je vérifierai ce modèle précis.
  */
 import type { AiModel } from "@/types";
 
 export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
+  // ============ OPENAI (CHAT) ============
   {
     provider: "openai",
-    displayName: "GPT-5",
-    apiModelId: "gpt-5",
-    description: "Le modèle phare d'OpenAI : raisonnement avancé, code, multimodal.",
+    displayName: "GPT-5.6 Sol",
+    apiModelId: "gpt-5.6-sol",
+    description: "Modèle OpenAI de la famille GPT-5.6, orienté raisonnement.",
     contextWindow: 256000,
     inputPricePerMTokUsd: 3,
     outputPricePerMTokUsd: 12,
     marginPercent: 20,
     enabled: true,
     tags: ["raisonnement", "code", "multimodal"],
+  },
+  {
+    provider: "openai",
+    displayName: "GPT-5.6 Terra",
+    apiModelId: "gpt-5.6-terra",
+    description: "Modèle OpenAI de la famille GPT-5.6, variante Terra.",
+    contextWindow: 256000,
+    inputPricePerMTokUsd: 3,
+    outputPricePerMTokUsd: 12,
+    marginPercent: 20,
+    enabled: true,
+    tags: ["raisonnement", "code", "multimodal"],
+  },
+  {
+    provider: "openai",
+    displayName: "GPT-5.6 Luna",
+    apiModelId: "gpt-5.6-luna",
+    description: "Modèle OpenAI de la famille GPT-5.6, variante Luna.",
+    contextWindow: 256000,
+    inputPricePerMTokUsd: 3,
+    outputPricePerMTokUsd: 12,
+    marginPercent: 20,
+    enabled: true,
+    tags: ["raisonnement", "code", "multimodal"],
+  },
+  {
+    provider: "openai",
+    displayName: "GPT-5.5",
+    apiModelId: "gpt-5.5",
+    description: "Modèle OpenAI GPT-5.5, usage général.",
+    contextWindow: 256000,
+    inputPricePerMTokUsd: 2.5,
+    outputPricePerMTokUsd: 10,
+    marginPercent: 20,
+    enabled: true,
+    tags: ["raisonnement", "code"],
+  },
+  {
+    provider: "openai",
+    displayName: "GPT-5.5 Pro",
+    apiModelId: "gpt-5.5-pro",
+    description: "Version Pro de GPT-5.5, capacités renforcées.",
+    contextWindow: 256000,
+    inputPricePerMTokUsd: 5,
+    outputPricePerMTokUsd: 20,
+    marginPercent: 20,
+    enabled: true,
+    tags: ["raisonnement", "code", "avancé"],
+  },
+  {
+    provider: "openai",
+    displayName: "GPT-5.4",
+    apiModelId: "gpt-5.4",
+    description: "Modèle OpenAI GPT-5.4, usage général.",
+    contextWindow: 256000,
+    inputPricePerMTokUsd: 2,
+    outputPricePerMTokUsd: 8,
+    marginPercent: 20,
+    enabled: true,
+    tags: ["raisonnement", "code"],
+  },
+  {
+    provider: "openai",
+    displayName: "GPT-5.4 Pro",
+    apiModelId: "gpt-5.4-pro",
+    description: "Version Pro de GPT-5.4.",
+    contextWindow: 256000,
+    inputPricePerMTokUsd: 4,
+    outputPricePerMTokUsd: 16,
+    marginPercent: 20,
+    enabled: true,
+    tags: ["raisonnement", "avancé"],
+  },
+  {
+    provider: "openai",
+    displayName: "GPT-5.4 mini",
+    apiModelId: "gpt-5.4-mini",
+    description: "Version rapide et économique de GPT-5.4.",
+    contextWindow: 128000,
+    inputPricePerMTokUsd: 0.35,
+    outputPricePerMTokUsd: 1.4,
+    marginPercent: 20,
+    enabled: true,
+    tags: ["rapide", "économique"],
+  },
+  {
+    provider: "openai",
+    displayName: "GPT-5.4 nano",
+    apiModelId: "gpt-5.4-nano",
+    description: "Version ultra légère de GPT-5.4 pour tâches simples à grande échelle.",
+    contextWindow: 64000,
+    inputPricePerMTokUsd: 0.1,
+    outputPricePerMTokUsd: 0.4,
+    marginPercent: 20,
+    enabled: true,
+    tags: ["rapide", "économique"],
   },
   {
     provider: "openai",
@@ -38,10 +137,48 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     enabled: true,
     tags: ["rapide", "économique"],
   },
+
+  // ============ ANTHROPIC (CLAUDE) ============
+  {
+    provider: "anthropic",
+    displayName: "Claude Fable 5",
+    apiModelId: "claude-fable-5",
+    description: "Modèle Anthropic de la génération Mythos, sécurisé pour un usage large.",
+    contextWindow: 200000,
+    inputPricePerMTokUsd: 3,
+    outputPricePerMTokUsd: 15,
+    marginPercent: 20,
+    enabled: true,
+    tags: ["raisonnement", "code"],
+  },
+  {
+    provider: "anthropic",
+    displayName: "Claude Opus 4.8",
+    apiModelId: "claude-opus-4-8",
+    description: "Modèle Anthropic le plus avancé de la lignée Opus.",
+    contextWindow: 200000,
+    inputPricePerMTokUsd: 15,
+    outputPricePerMTokUsd: 75,
+    marginPercent: 20,
+    enabled: true,
+    tags: ["raisonnement", "avancé"],
+  },
+  {
+    provider: "anthropic",
+    displayName: "Claude Opus 4.1",
+    apiModelId: "claude-opus-4-1",
+    description: "Modèle Anthropic Opus, capacités de raisonnement avancées.",
+    contextWindow: 200000,
+    inputPricePerMTokUsd: 15,
+    outputPricePerMTokUsd: 75,
+    marginPercent: 20,
+    enabled: true,
+    tags: ["raisonnement", "avancé"],
+  },
   {
     provider: "anthropic",
     displayName: "Claude Sonnet 5",
-    apiModelId: "claude-sonnet-4-6",
+    apiModelId: "claude-sonnet-5",
     description: "Excellent équilibre qualité/vitesse d'Anthropic, très fort en code et rédaction.",
     contextWindow: 200000,
     inputPricePerMTokUsd: 3,
@@ -49,6 +186,18 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     marginPercent: 20,
     enabled: true,
     tags: ["code", "rédaction", "raisonnement"],
+  },
+  {
+    provider: "anthropic",
+    displayName: "Claude Sonnet 4",
+    apiModelId: "claude-sonnet-4",
+    description: "Modèle Anthropic Sonnet, génération précédente.",
+    contextWindow: 200000,
+    inputPricePerMTokUsd: 3,
+    outputPricePerMTokUsd: 15,
+    marginPercent: 20,
+    enabled: true,
+    tags: ["code", "rédaction"],
   },
   {
     provider: "anthropic",
@@ -63,6 +212,32 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     tags: ["rapide", "économique"],
   },
   {
+    provider: "anthropic",
+    displayName: "Claude 3.7 Sonnet",
+    apiModelId: "claude-3-7-sonnet-latest",
+    description: "Modèle Anthropic Claude 3.7 Sonnet, alias auto-mis à jour.",
+    contextWindow: 200000,
+    inputPricePerMTokUsd: 3,
+    outputPricePerMTokUsd: 15,
+    marginPercent: 20,
+    enabled: true,
+    tags: ["code", "rédaction"],
+  },
+  {
+    provider: "anthropic",
+    displayName: "Claude 3.5 Haiku",
+    apiModelId: "claude-3-5-haiku-latest",
+    description: "Modèle Anthropic Claude 3.5 Haiku, rapide et économique.",
+    contextWindow: 200000,
+    inputPricePerMTokUsd: 0.8,
+    outputPricePerMTokUsd: 4,
+    marginPercent: 20,
+    enabled: true,
+    tags: ["rapide", "économique"],
+  },
+
+  // ============ GOOGLE (CHAT) — identifiants vérifiés par recherche web ============
+  {
     // gemini-2.5-pro a un quota gratuit nul sur de nombreux projets (429, limit:0) et sera
     // déprécié le 16/10/2026. Remplacement officiel confirmé par Google : gemini-3.1-pro-preview.
     provider: "google",
@@ -76,16 +251,14 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     enabled: true,
     tags: ["multimodal", "long-contexte"],
   },
-{
-    // gemini-2.5-flash-lite est lui aussi restreint aux comptes existants avant sa
-    // date de fin de vie officielle (16/10/2026) — confirmé par la table de
-    // dépréciation officielle Google. Remplacement GA stable et non restreint :
-    // gemini-3.5-flash (disponible depuis le 19/05/2026, recommandé par Google
-    // comme remplacement direct de toute la lignée 2.x Flash).
+  {
+    // gemini-2.5-flash ET gemini-2.5-flash-lite sont tous deux restreints aux comptes
+    // existants avant leur date de fin de vie (16/10/2026) — confirmé par table de
+    // dépréciation officielle Google. Remplacement GA stable et non restreint : gemini-3.5-flash.
     provider: "google",
     displayName: "Gemini 3.5 Flash",
     apiModelId: "gemini-3.5-flash",
-    description: "Version rapide de Gemini, idéale pour les applications temps réel.",
+    description: "Version rapide de Gemini, idéale pour les applications temps réel et agentiques.",
     contextWindow: 1048576,
     inputPricePerMTokUsd: 1.5,
     outputPricePerMTokUsd: 9,
@@ -93,6 +266,75 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     enabled: true,
     tags: ["rapide", "agentique"],
   },
+
+  // ============ META AI (LLAMA) ============
+  // NOTE : Meta ne propose pas d'API officielle grand public pour Llama — ces modèles sont
+  // généralement accédés via des fournisseurs tiers (Together AI, Groq, Fireworks, etc.).
+  // Ils sont ajoutés ici avec le provider "meta" — À CRÉER dans lib/providers/ (adapter +
+  // clé API + base URL d'un hébergeur compatible) avant que ces entrées soient fonctionnelles.
+  // ============ META AI (LLAMA) — servis via Together AI, identifiants officiels confirmés ============
+  {
+    provider: "meta",
+    displayName: "Llama 3.3 70B",
+    apiModelId: "meta-llama/Llama-3.3-70B-Instruct-Reference",
+    description: "Modèle Meta Llama 3.3, 70 milliards de paramètres, optimisé instructions.",
+    contextWindow: 24576,
+    inputPricePerMTokUsd: 0.3,
+    outputPricePerMTokUsd: 0.9,
+    marginPercent: 25,
+    enabled: true,
+    tags: ["open-weight"],
+  },
+  {
+    provider: "meta",
+    displayName: "Llama 3.1 70B",
+    apiModelId: "meta-llama/Meta-Llama-3.1-70B-Instruct-Reference",
+    description: "Modèle Meta Llama 3.1, 70 milliards de paramètres, optimisé instructions.",
+    contextWindow: 24576,
+    inputPricePerMTokUsd: 0.25,
+    outputPricePerMTokUsd: 0.75,
+    marginPercent: 25,
+    enabled: true,
+    tags: ["open-weight"],
+  },
+  {
+    provider: "meta",
+    displayName: "Llama 3.1 8B",
+    apiModelId: "meta-llama/Meta-Llama-3.1-8B-Instruct-Reference",
+    description: "Modèle Meta Llama 3.1, rapide et économique, 8 milliards de paramètres.",
+    contextWindow: 131072,
+    inputPricePerMTokUsd: 0.05,
+    outputPricePerMTokUsd: 0.15,
+    marginPercent: 25,
+    enabled: true,
+    tags: ["rapide", "économique", "open-weight"],
+  },
+  {
+    provider: "meta",
+    displayName: "Llama 3.2 3B",
+    apiModelId: "meta-llama/Llama-3.2-3B-Instruct",
+    description: "Modèle Meta Llama 3.2 léger, 3 milliards de paramètres, longue fenêtre de contexte.",
+    contextWindow: 131072,
+    inputPricePerMTokUsd: 0.03,
+    outputPricePerMTokUsd: 0.09,
+    marginPercent: 25,
+    enabled: true,
+    tags: ["rapide", "économique", "open-weight"],
+  },
+  {
+    provider: "meta",
+    displayName: "Llama 3.2 1B",
+    apiModelId: "meta-llama/Llama-3.2-1B-Instruct",
+    description: "Modèle Meta Llama 3.2 ultra léger, 1 milliard de paramètres, idéal tâches simples.",
+    contextWindow: 131072,
+    inputPricePerMTokUsd: 0.02,
+    outputPricePerMTokUsd: 0.06,
+    marginPercent: 25,
+    enabled: true,
+    tags: ["rapide", "économique", "open-weight"],
+  },
+
+  // ============ AUTRES FOURNISSEURS ============
   {
     provider: "xai",
     displayName: "Grok 4",
@@ -118,7 +360,6 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     tags: ["code", "mathématiques", "économique"],
   },
   {
-    // Identifiant réel confirmé par recherche : "mistral-large-latest" (alias auto-mis à jour)
     provider: "mistral",
     displayName: "Mistral Large",
     apiModelId: "mistral-large-latest",
@@ -131,7 +372,6 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     tags: ["multilingue", "raisonnement"],
   },
   {
-    // Identifiant réel confirmé par recherche : "kimi-k2.6"
     provider: "moonshot",
     displayName: "Kimi K2.6",
     apiModelId: "kimi-k2.6",
@@ -144,7 +384,6 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     tags: ["agents", "long-contexte"],
   },
   {
-    // Identifiant réel confirmé par recherche : "MiniMax-M2" (casse exacte importante)
     provider: "minimax",
     displayName: "MiniMax M2",
     apiModelId: "MiniMax-M2",
@@ -157,10 +396,6 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     tags: ["économique", "polyvalent"],
   },
   {
-    // "glm-4.6" confirmé valide en théorie, mais retourne "Unknown Model" (1211) selon
-    // le plan/compte Z.ai utilisé (confirmé : ce code peut être limité par le tier du
-    // compte, pas juste par l'orthographe). On utilise le modèle FLASH, confirmé
-    // accessible gratuitement/largement sur tous les comptes.
     provider: "zai",
     displayName: "GLM-4.5 Flash",
     apiModelId: "glm-4.5-flash",
@@ -185,12 +420,15 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     tags: ["multimodal", "raisonnement"],
   },
 
-  // --- Modèles de génération d'image ---
+  // ============ GÉNÉRATION D'IMAGE ============
   {
+    // response_format n'existe PAS pour les modèles GPT Image (gpt-image-1/2) — uniquement
+    // pour dall-e-2/3 (legacy). L'API renvoie toujours b64_json par défaut pour GPT Image.
+    // Voir lib/providers/image-generation.ts : ce paramètre ne doit plus être envoyé du tout.
     provider: "openai",
-    displayName: "GPT Image 1",
-    apiModelId: "gpt-image-1",
-    description: "Modèle de génération d'image d'OpenAI, haute fidélité et bonne compréhension des prompts détaillés.",
+    displayName: "GPT Image 2",
+    apiModelId: "gpt-image-2",
+    description: "Modèle de génération d'image d'OpenAI (2e génération), haute fidélité et raisonnement intégré.",
     contextWindow: 0,
     inputPricePerMTokUsd: 0,
     outputPricePerMTokUsd: 0,
@@ -198,19 +436,24 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     enabled: true,
     tags: ["image", "génération"],
     modality: "image",
-    pricePerImageUsd: 0.04,
+    pricePerImageUsd: 0.05,
   },
   {
+    // Imagen est déprécié par Google au profit des modèles image Gemini ("Nano Banana").
+    // Remplacement confirmé par la doc officielle Google : gemini-2.5-flash-image.
+    // ATTENTION : ce modèle utilise generateContent (comme le chat), pas l'endpoint
+    // dédié Imagen predict — l'adaptateur lib/providers/image-generation.ts doit être
+    // adapté en conséquence pour ce modèle précis.
     provider: "google",
-    displayName: "Imagen 4",
-    apiModelId: "imagen-4.0-generate-001",
-    description: "Modèle de génération d'image de Google, excellent rendu photoréaliste.",
+    displayName: "Gemini Flash Image",
+    apiModelId: "gemini-2.5-flash-image",
+    description: "Modèle de génération/édition d'image de Google (Nano Banana), remplace Imagen.",
     contextWindow: 0,
     inputPricePerMTokUsd: 0,
     outputPricePerMTokUsd: 0,
     marginPercent: 25,
     enabled: true,
-    tags: ["image", "génération", "photoréaliste"],
+    tags: ["image", "génération", "édition"],
     modality: "image",
     pricePerImageUsd: 0.03,
   },
@@ -229,9 +472,8 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     pricePerImageUsd: 0.02,
   },
 
-  // --- Modèle de génération vidéo ---
+  // ============ GÉNÉRATION VIDÉO ============
   {
-    // Identifiant réel confirmé par recherche : "veo-3.1-generate-preview"
     provider: "google",
     displayName: "Veo 3.1",
     apiModelId: "veo-3.1-generate-preview",

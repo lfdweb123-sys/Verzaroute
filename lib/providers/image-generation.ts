@@ -1,3 +1,8 @@
+/**
+ * Adaptateurs de génération d'image — séparés des adaptateurs de chat car les
+ * endpoints, formats de requête et de réponse diffèrent significativement
+ * d'un fournisseur à l'autre pour ce type de tâche.
+ */
 import type { ProviderId } from "@/types";
 
 export interface ImageGenerationRequest {
@@ -7,6 +12,7 @@ export interface ImageGenerationRequest {
 }
 
 export interface ImageGenerationResult {
+  /** Image encodée en base64 (sans préfixe data:...) */
   base64: string;
   mimeType: string;
 }
@@ -24,7 +30,10 @@ async function generateWithOpenAi(req: ImageGenerationRequest, apiKey: string | 
       prompt: req.prompt,
       size: req.size ?? "1024x1024",
       n: 1,
-      response_format: "b64_json",
+      // IMPORTANT : response_format n'existe PAS pour les modèles GPT Image
+      // (gpt-image-1, gpt-image-2) — uniquement pour dall-e-2/3 (legacy). L'envoyer
+      // provoque une erreur 400 "Unknown parameter: 'response_format'". Les modèles
+      // GPT Image renvoient TOUJOURS b64_json par défaut, sans configuration.
     }),
   });
   if (!res.ok) {
@@ -37,8 +46,42 @@ async function generateWithOpenAi(req: ImageGenerationRequest, apiKey: string | 
   return { base64: b64, mimeType: "image/png" };
 }
 
+/**
+ * Google : deux familles de modèles, deux endpoints différents.
+ * - "imagen-*" (déprécié par Google) utilise l'ancien endpoint :predict avec { instances, parameters }.
+ * - "gemini-*-image" (modèles Gemini natifs, ex: gemini-2.5-flash-image, remplacement
+ *   officiel d'Imagen) utilise :generateContent, comme le chat, avec responseModalities
+ *   incluant "IMAGE", et renvoie l'image dans un bloc inlineData (pas predictions[]).
+ */
 async function generateWithGoogle(req: ImageGenerationRequest, apiKey: string | undefined): Promise<ImageGenerationResult> {
   if (!apiKey) throw new Error('Clé API manquante pour le fournisseur "google"');
+
+  const isGeminiImageModel = req.model.startsWith("gemini-");
+
+  if (isGeminiImageModel) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${req.model}:generateContent?key=${apiKey}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: req.prompt }] }],
+        generationConfig: { responseModalities: ["IMAGE"] },
+      }),
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => res.statusText);
+      throw new Error(`[google-image] Erreur API (${res.status}): ${errText}`);
+    }
+    const data = await res.json();
+    const parts = data?.candidates?.[0]?.content?.parts ?? [];
+    const imagePart = parts.find((p: { inlineData?: { data?: string; mimeType?: string } }) => p.inlineData?.data);
+    const b64 = imagePart?.inlineData?.data;
+    if (!b64) throw new Error("[google-image] Réponse inattendue : aucun bloc inlineData avec une image trouvé");
+    return { base64: b64, mimeType: imagePart.inlineData.mimeType ?? "image/png" };
+  }
+
+  // Chemin legacy Imagen (:predict), conservé pour compatibilité si un modèle
+  // "imagen-*" est un jour réactivé.
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${req.model}:predict?key=${apiKey}`;
   const res = await fetch(url, {
     method: "POST",
@@ -83,6 +126,7 @@ async function generateWithXai(req: ImageGenerationRequest, apiKey: string | und
   return { base64: b64, mimeType: "image/png" };
 }
 
+/** Registre des générateurs d'image par fournisseur. Seuls openai/google/xai sont supportés pour l'instant. */
 export async function generateImage(provider: ProviderId, req: ImageGenerationRequest): Promise<ImageGenerationResult> {
   switch (provider) {
     case "openai":
