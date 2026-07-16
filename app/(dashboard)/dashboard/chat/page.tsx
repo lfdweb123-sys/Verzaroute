@@ -6,7 +6,7 @@ import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { DashboardTopBar } from "@/components/dashboard/TopBar";
 import type { AiModel } from "@/types";
-import { Send, Loader2, Bot, User as UserIcon, Paperclip, X, FileText, Globe, Image as ImageIcon, ChevronUp } from "lucide-react";
+import { Send, Loader2, Bot, User as UserIcon, Paperclip, X, FileText, Globe, Image as ImageIcon, ChevronUp, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import ReactMarkdown from "react-markdown";
 
@@ -96,6 +96,7 @@ function ChatContent() {
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
@@ -161,6 +162,26 @@ function ChatContent() {
 
   function removeAttachment(id: string) {
     setAttachments((prev) => prev.filter((a) => a.id !== id));
+  }
+
+  function getMessageText(content: ChatMessage["content"]): string {
+    if (typeof content === "string") return content;
+    return content
+      .filter((b): b is Extract<ContentBlock, { type: "text" }> => b.type === "text")
+      .map((b) => b.text)
+      .join("\n\n");
+  }
+
+  async function handleCopy(index: number, content: ChatMessage["content"]) {
+    const text = getMessageText(content);
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex((cur) => (cur === index ? null : cur)), 1500);
+    } catch {
+      setError("Impossible de copier le message.");
+    }
   }
 
   async function handleSend() {
@@ -275,28 +296,49 @@ function ChatContent() {
             style={{ scrollBehavior: "smooth" }}
           >
             {messages.map((msg, i) => (
-              <div key={i} className={cn("flex gap-2 sm:gap-3", msg.role === "user" ? "justify-end" : "justify-start")}>
-                {msg.role === "assistant" && (
-                  <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
-                    <Bot size={14} className="text-gold sm:w-4 sm:h-4" />
-                  </div>
-                )}
-                <div
-                  className={cn(
-                    "max-w-[85%] sm:max-w-[80%] rounded-2xl px-2.5 sm:px-3.5 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words",
-                    msg.role === "user" ? "bg-gold-gradient text-obsidian font-medium" : "bg-obsidian-card border border-white/10 text-white/85"
+              <div key={i} className={cn("group flex flex-col gap-1", msg.role === "user" ? "items-end" : "items-start")}>
+                <div className={cn("flex gap-2 sm:gap-3 w-full", msg.role === "user" ? "justify-end" : "justify-start")}>
+                  {msg.role === "assistant" && (
+                    <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
+                      <Bot size={14} className="text-gold sm:w-4 sm:h-4" />
+                    </div>
                   )}
-                >
-                  {renderMessageContent(msg.content, msg.role)}
-                  {msg.creditsCharged !== undefined && (
-                    <p className="mt-1 text-[9px] sm:text-[10px] opacity-50">-{msg.creditsCharged} crédits</p>
+                  <div
+                    className={cn(
+                      "max-w-[85%] sm:max-w-[80%] rounded-2xl px-2.5 sm:px-3.5 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words",
+                      msg.role === "user" ? "bg-gold-gradient text-obsidian font-medium" : "bg-obsidian-card border border-white/10 text-white/85"
+                    )}
+                  >
+                    {renderMessageContent(msg.content, msg.role)}
+                    {msg.creditsCharged !== undefined && (
+                      <p className="mt-1 text-[9px] sm:text-[10px] opacity-50">-{msg.creditsCharged} crédits</p>
+                    )}
+                  </div>
+                  {msg.role === "user" && (
+                    <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 rounded-full bg-white/10 flex items-center justify-center">
+                      <UserIcon size={14} className="text-white/70 sm:w-4 sm:h-4" />
+                    </div>
                   )}
                 </div>
-                {msg.role === "user" && (
-                  <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 rounded-full bg-white/10 flex items-center justify-center">
-                    <UserIcon size={14} className="text-white/70 sm:w-4 sm:h-4" />
-                  </div>
-                )}
+
+                <button
+                  onClick={() => handleCopy(i, msg.content)}
+                  className={cn(
+                    "flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] text-white/40 hover:text-white/80 hover:bg-white/5 transition-all opacity-0 group-hover:opacity-100",
+                    msg.role === "user" ? "mr-9 sm:mr-11" : "ml-9 sm:ml-11"
+                  )}
+                  aria-label="Copier le message"
+                  title="Copier le message"
+                >
+                  {copiedIndex === i ? (
+                    <>
+                      <Check size={12} className="text-gold" />
+                      <span className="text-gold">Copié</span>
+                    </>
+                  ) : (
+                    <Copy size={12} />
+                  )}
+                </button>
               </div>
             ))}
 
