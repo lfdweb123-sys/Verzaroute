@@ -76,20 +76,22 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     enabled: true,
     tags: ["multimodal", "long-contexte"],
   },
-  {
-    // gemini-2.5-flash n'est plus accessible aux nouveaux comptes/projets (confirmé sur le
-    // forum officiel Google AI Developers, juillet 2026 — dépréciation anticipée avant la
-    // date de fin de vie annoncée). Remplacement : gemini-2.5-flash-lite (accès non restreint).
+{
+    // gemini-2.5-flash-lite est lui aussi restreint aux comptes existants avant sa
+    // date de fin de vie officielle (16/10/2026) — confirmé par la table de
+    // dépréciation officielle Google. Remplacement GA stable et non restreint :
+    // gemini-3.5-flash (disponible depuis le 19/05/2026, recommandé par Google
+    // comme remplacement direct de toute la lignée 2.x Flash).
     provider: "google",
-    displayName: "Gemini 2.5 Flash Lite",
-    apiModelId: "gemini-2.5-flash-lite",
+    displayName: "Gemini 3.5 Flash",
+    apiModelId: "gemini-3.5-flash",
     description: "Version rapide de Gemini, idéale pour les applications temps réel.",
-    contextWindow: 1000000,
-    inputPricePerMTokUsd: 0.1,
-    outputPricePerMTokUsd: 0.4,
+    contextWindow: 1048576,
+    inputPricePerMTokUsd: 1.5,
+    outputPricePerMTokUsd: 9,
     marginPercent: 20,
     enabled: true,
-    tags: ["rapide", "économique"],
+    tags: ["rapide", "agentique"],
   },
   {
     provider: "xai",
