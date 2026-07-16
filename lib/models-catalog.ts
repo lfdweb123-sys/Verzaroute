@@ -63,9 +63,11 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     tags: ["rapide", "économique"],
   },
   {
+    // gemini-2.5-pro a un quota gratuit nul sur de nombreux projets (429, limit:0) et sera
+    // déprécié le 16/10/2026. Remplacement officiel confirmé par Google : gemini-3.1-pro-preview.
     provider: "google",
-    displayName: "Gemini 2.5 Pro",
-    apiModelId: "gemini-2.5-pro",
+    displayName: "Gemini 3.1 Pro",
+    apiModelId: "gemini-3.1-pro-preview",
     description: "Modèle multimodal de Google, très grande fenêtre de contexte.",
     contextWindow: 1000000,
     inputPricePerMTokUsd: 1.25,
@@ -75,13 +77,16 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     tags: ["multimodal", "long-contexte"],
   },
   {
+    // gemini-2.5-flash n'est plus accessible aux nouveaux comptes/projets (confirmé sur le
+    // forum officiel Google AI Developers, juillet 2026 — dépréciation anticipée avant la
+    // date de fin de vie annoncée). Remplacement : gemini-2.5-flash-lite (accès non restreint).
     provider: "google",
-    displayName: "Gemini 2.5 Flash",
-    apiModelId: "gemini-2.5-flash",
+    displayName: "Gemini 2.5 Flash Lite",
+    apiModelId: "gemini-2.5-flash-lite",
     description: "Version rapide de Gemini, idéale pour les applications temps réel.",
     contextWindow: 1000000,
-    inputPricePerMTokUsd: 0.15,
-    outputPricePerMTokUsd: 0.6,
+    inputPricePerMTokUsd: 0.1,
+    outputPricePerMTokUsd: 0.4,
     marginPercent: 20,
     enabled: true,
     tags: ["rapide", "économique"],
@@ -111,6 +116,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     tags: ["code", "mathématiques", "économique"],
   },
   {
+    // Identifiant réel confirmé par recherche : "mistral-large-latest" (alias auto-mis à jour)
     provider: "mistral",
     displayName: "Mistral Large",
     apiModelId: "mistral-large-latest",
@@ -123,6 +129,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     tags: ["multilingue", "raisonnement"],
   },
   {
+    // Identifiant réel confirmé par recherche : "kimi-k2.6"
     provider: "moonshot",
     displayName: "Kimi K2.6",
     apiModelId: "kimi-k2.6",
@@ -135,6 +142,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     tags: ["agents", "long-contexte"],
   },
   {
+    // Identifiant réel confirmé par recherche : "MiniMax-M2" (casse exacte importante)
     provider: "minimax",
     displayName: "MiniMax M2",
     apiModelId: "MiniMax-M2",
@@ -147,6 +155,10 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     tags: ["économique", "polyvalent"],
   },
   {
+    // "glm-4.6" confirmé valide en théorie, mais retourne "Unknown Model" (1211) selon
+    // le plan/compte Z.ai utilisé (confirmé : ce code peut être limité par le tier du
+    // compte, pas juste par l'orthographe). On utilise le modèle FLASH, confirmé
+    // accessible gratuitement/largement sur tous les comptes.
     provider: "zai",
     displayName: "GLM-4.5 Flash",
     apiModelId: "glm-4.5-flash",
@@ -170,6 +182,8 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     enabled: true,
     tags: ["multimodal", "raisonnement"],
   },
+
+  // --- Modèles de génération d'image ---
   {
     provider: "openai",
     displayName: "GPT Image 1",
@@ -212,7 +226,10 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     modality: "image",
     pricePerImageUsd: 0.02,
   },
+
+  // --- Modèle de génération vidéo ---
   {
+    // Identifiant réel confirmé par recherche : "veo-3.1-generate-preview"
     provider: "google",
     displayName: "Veo 3.1",
     apiModelId: "veo-3.1-generate-preview",
