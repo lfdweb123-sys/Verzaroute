@@ -236,6 +236,29 @@ function ChatContent() {
           </div>
         )}
 
+        {/* Sélecteur de modèle - visible seulement AVANT le début de la conversation */}
+        {!hasStartedConversation && (
+          <div className="max-w-2xl w-full mx-auto mb-3 flex items-center gap-2 sm:gap-3">
+            <label className="text-xs sm:text-sm text-white/60 shrink-0">Modèle :</label>
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="flex-1 min-w-0 rounded-lg bg-obsidian-card border border-white/15 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white outline-none focus:border-gold/50"
+            >
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.displayName}
+                </option>
+              ))}
+            </select>
+            {currentModel && (
+              <span className="text-[10px] sm:text-xs text-white/40 hidden sm:inline whitespace-nowrap shrink-0">
+                ${currentModel.inputPricePerMTokUsd.toFixed(2)} / ${currentModel.outputPricePerMTokUsd.toFixed(2)} / 1M tokens
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Zone de messages */}
         {hasStartedConversation && (
           <div
