@@ -173,7 +173,7 @@ function ChatContent() {
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && (e.altKey || (!e.shiftKey && window.innerWidth >= 768))) {
+    if (e.key === "Enter" && e.altKey) {
       e.preventDefault();
       handleSend();
     }
@@ -218,7 +218,6 @@ function ChatContent() {
             : "min-h-[100dvh] justify-center px-3 sm:px-4"
         )}
       >
-        {/* Zone de messages */}
         {hasStartedConversation && (
           <div
             ref={scrollRef}
@@ -264,14 +263,12 @@ function ChatContent() {
           </div>
         )}
 
-        {/* Message d'erreur */}
         {error && (
           <div className={cn("px-3 sm:px-4 py-2 bg-red-500/10 border-y border-red-500/20", !hasStartedConversation && "max-w-2xl w-full mx-auto rounded-lg border mb-3")}>
             <p className="text-xs sm:text-sm text-red-400">{error}</p>
           </div>
         )}
 
-        {/* Bloc composer (input + sélecteur) - design carte unique comme l'image 2 */}
         <div
           className={cn(
             "w-full",
@@ -295,7 +292,7 @@ function ChatContent() {
               hasStartedConversation && "border-white/15"
             )}
           >
-            {/* Ligne du haut : sélecteur de modèle + prix */}
+            {/* Ligne du haut : sélecteur de modèle + prix (un seul affichage de prix) */}
             <div className="flex items-center justify-between px-3 sm:px-4 pt-2.5 sm:pt-3 pb-1">
               <div className="relative" ref={modelPickerRef}>
                 <button
@@ -318,14 +315,11 @@ function ChatContent() {
                           if (hasStartedConversation) setMessages([]);
                         }}
                         className={cn(
-                          "w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-xs sm:text-sm hover:bg-white/5 transition-colors",
+                          "w-full px-3 py-2 text-left text-xs sm:text-sm hover:bg-white/5 transition-colors truncate",
                           m.id === selectedModel ? "text-gold" : "text-white/80"
                         )}
                       >
-                        <span className="truncate">{m.displayName}</span>
-                        <span className="text-[10px] text-white/40 shrink-0">
-                          ${m.inputPricePerMTokUsd.toFixed(2)}/${m.outputPricePerMTokUsd.toFixed(2)}
-                        </span>
+                        {m.displayName}
                       </button>
                     ))}
                   </div>
@@ -397,7 +391,6 @@ function ChatContent() {
             </div>
           </div>
 
-          {/* Pièces jointes en attente */}
           {attachments.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2 max-h-24 overflow-y-auto">
               {attachments.map((att) => (
