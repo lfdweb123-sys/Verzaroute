@@ -10,6 +10,7 @@ export interface UserProfile {
   createdAt: number;
   updatedAt: number;
   disabled?: boolean;
+  phoneNumber?: string;
 }
 
 export interface ApiKeyRecord {

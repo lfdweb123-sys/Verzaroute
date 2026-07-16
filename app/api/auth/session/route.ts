@@ -1,16 +1,8 @@
-/**
- * Échange un idToken Firebase (obtenu côté client après signInWithRedirect ou email/mdp)
- * contre un cookie de session HttpOnly sécurisé, utilisé par le middleware pour la redirection par rôle
- * et par les API routes pour authentifier l'utilisateur.
- *
- * DEBUG : tous les logs de cette route sont préfixés "[VZR-SESSION]" et visibles dans
- * Vercel → ton projet → onglet "Logs" (ou "Functions" → cliquer sur l'invocation).
- */
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, createSessionCookie } from "@/lib/firebase/admin";
 import { adminDb } from "@/lib/firebase/admin";
 
-const SESSION_EXPIRES_MS = 60 * 60 * 24 * 14 * 1000; // 14 jours
+const SESSION_EXPIRES_MS = 60 * 60 * 24 * 14 * 1000;
 
 export async function POST(req: NextRequest) {
   console.log("[VZR-SESSION] Requête POST reçue sur /api/auth/session");
@@ -19,7 +11,7 @@ export async function POST(req: NextRequest) {
     console.error("[VZR-SESSION] Échec du parsing JSON du corps de la requête:", err);
     return {};
   });
-  const { idToken } = body;
+  const { idToken, phoneNumber } = body;
 
   if (!idToken) {
     console.warn("[VZR-SESSION] Aucun idToken fourni dans le corps de la requête");
@@ -36,7 +28,6 @@ export async function POST(req: NextRequest) {
     const sessionCookie = await createSessionCookie(idToken, SESSION_EXPIRES_MS);
     console.log("[VZR-SESSION] Cookie de session créé, longueur:", sessionCookie.length);
 
-    // Crée le profil utilisateur au premier login si besoin
     const userRef = adminDb.collection("users").doc(decoded.uid);
     const snap = await userRef.get();
     console.log("[VZR-SESSION] Document utilisateur existe déjà ?", snap.exists);
@@ -52,6 +43,7 @@ export async function POST(req: NextRequest) {
         creditsBalance: 0,
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        ...(phoneNumber ? { phoneNumber } : {}),
       });
       await adminAuth.setCustomUserClaims(decoded.uid, { role: "user" });
       console.log("[VZR-SESSION] Profil utilisateur créé et rôle 'user' attribué (custom claims)");

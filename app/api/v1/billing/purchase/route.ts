@@ -1,7 +1,3 @@
-/**
- * Crée une demande de paiement Verzapay pour l'achat de crédits.
- * Appelé depuis le dashboard (utilisateur connecté via cookie de session).
- */
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
@@ -31,6 +27,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Méthode de paiement invalide" }, { status: 400 });
   }
 
+  const userDocSnap = await adminDb.collection("users").doc(user.uid).get();
+  const phoneNumber = userDocSnap.data()?.phoneNumber as string | undefined;
+  if (!phoneNumber) {
+    return NextResponse.json(
+      {
+        error: "Un numéro de téléphone est requis pour acheter des crédits. Ajoute-le depuis ton profil.",
+        type: "phone_required",
+      },
+      { status: 400 }
+    );
+  }
+
   const settingsSnap = await adminDb.collection("settings").doc("platform").get();
   const settings = (settingsSnap.data() as PlatformSettings) ?? {
     creditToUsdRate: 0.001,
@@ -54,6 +62,7 @@ export async function POST(req: NextRequest) {
     amountFcfa,
     method,
     customerEmail: user.email ?? "",
+    customerPhone: phoneNumber,
     metadata: { uid: user.uid, creditsRequested: String(creditsRequested) },
     callbackUrl: `${appUrl}/api/webhooks/verzapay`,
     returnUrl: `${appUrl}/dashboard/billing?status=return`,

@@ -3,9 +3,25 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Eye, EyeOff } from "lucide-react"; // Import des icônes œil
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { FirebaseError } from "firebase/app";
+
+const COUNTRY_CODES = [
+  { code: "+225", label: "🇨🇮 +225 (CI)" },
+  { code: "+229", label: "🇧🇯 +229 (BJ)" },
+  { code: "+221", label: "🇸🇳 +221 (SN)" },
+  { code: "+223", label: "🇲🇱 +223 (ML)" },
+  { code: "+226", label: "🇧🇫 +226 (BF)" },
+  { code: "+228", label: "🇹🇬 +228 (TG)" },
+  { code: "+227", label: "🇳🇪 +227 (NE)" },
+  { code: "+224", label: "🇬🇳 +224 (GN)" },
+  { code: "+237", label: "🇨🇲 +237 (CM)" },
+  { code: "+233", label: "🇬🇭 +233 (GH)" },
+  { code: "+234", label: "🇳🇬 +234 (NG)" },
+  { code: "+33", label: "🇫🇷 +33 (FR)" },
+  { code: "+1", label: "🇺🇸 +1 (US)" },
+];
 
 function mapAuthError(err: unknown): string {
   if (err instanceof FirebaseError) {
@@ -28,24 +44,31 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [countryCode, setCountryCode] = useState("+225");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  
-  // États pour la visibilité des mots de passe
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    
+
     setError(null);
     if (password !== confirmPassword) {
       setError("Les mots de passe ne correspondent pas.");
       return;
     }
+    const digitsOnly = phoneNumber.replace(/\D/g, "");
+    if (digitsOnly.length < 6) {
+      setError("Merci de saisir un numéro de téléphone valide.");
+      return;
+    }
     setLoading(true);
     try {
-      await registerWithEmail(email, password);
+      const fullPhoneNumber = `${countryCode}${digitsOnly}`;
+      await registerWithEmail(email, password, fullPhoneNumber);
     } catch (err) {
       setError(mapAuthError(err));
     } finally {
@@ -56,15 +79,14 @@ export default function RegisterPage() {
   return (
     <div className="rounded-2xl border border-white/10 bg-obsidian-card p-8 shadow-2xl animate-fade-in">
       <div className="text-center mb-8">
-        {/* Logo cliquable vers l'accueil */}
         <Link href="/" className="inline-block mb-4">
-          <Image 
-            src="/icons/icon-192.png" 
-            alt="VerzaRoute Logo" 
-            width={48} 
-            height={48} 
-            className="rounded-md mx-auto" 
-            priority 
+          <Image
+            src="/icons/icon-192.png"
+            alt="VerzaRoute Logo"
+            width={48}
+            height={48}
+            className="rounded-md mx-auto"
+            priority
           />
         </Link>
         <h1 className="text-xl font-semibold text-white">Créer votre compte</h1>
@@ -82,8 +104,13 @@ export default function RegisterPage() {
           <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 010-4.2V7.05H2.18a11 11 0 000 9.9z" />
           <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1a11 11 0 00-9.82 6.05l3.66 2.85C6.71 7.31 9.14 5.38 12 5.38z" />
         </svg>
-        S'inscrire avec Google
+        S&apos;inscrire avec Google
       </button>
+
+      <p className="text-[11px] text-white/40 text-center -mt-3 mb-6">
+        Avec Google, il te sera demandé d&apos;ajouter ton numéro de téléphone ensuite (requis pour
+        acheter des crédits).
+      </p>
 
       <div className="flex items-center gap-3 mb-6">
         <div className="h-px flex-1 bg-white/10" />
@@ -103,8 +130,35 @@ export default function RegisterPage() {
             placeholder="vous@exemple.com"
           />
         </div>
-        
-        {/* Champ Mot de passe avec icône œil */}
+
+        <div>
+          <label className="block text-sm text-white/70 mb-1.5">Numéro de téléphone</label>
+          <div className="flex gap-2">
+            <select
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value)}
+              className="rounded-lg border border-white/15 bg-obsidian px-2.5 py-2.5 text-white text-sm outline-none focus:border-gold/50 transition-colors shrink-0"
+            >
+              {COUNTRY_CODES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <input
+              type="tel"
+              required
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              className="w-full rounded-lg border border-white/15 bg-obsidian px-3.5 py-2.5 text-white outline-none focus:border-gold/50 transition-colors"
+              placeholder="0700000000"
+            />
+          </div>
+          <p className="text-[11px] text-white/40 mt-1">
+            Requis pour créer un paiement (Mobile Money / carte) via Verzapay.
+          </p>
+        </div>
+
         <div>
           <label className="block text-sm text-white/70 mb-1.5">Mot de passe</label>
           <div className="relative">
@@ -128,7 +182,6 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* Champ Confirmer le mot de passe avec icône œil */}
         <div>
           <label className="block text-sm text-white/70 mb-1.5">Confirmer le mot de passe</label>
           <div className="relative">

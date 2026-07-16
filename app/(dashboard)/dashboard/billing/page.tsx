@@ -1,13 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase/client";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { DashboardTopBar } from "@/components/dashboard/TopBar";
-import { Smartphone, CreditCard, Loader2 } from "lucide-react";
+import { Smartphone, CreditCard, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import Link from "next/link";
+import type { UserProfile } from "@/types";
 
 const PRESET_AMOUNTS = [1000, 2500, 5000, 10000, 25000, 50000];
 
 export default function BillingPage() {
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [amount, setAmount] = useState<number>(5000);
   const [customAmount, setCustomAmount] = useState("");
   const [method, setMethod] = useState<"mobile_money" | "card">("mobile_money");
@@ -15,6 +22,15 @@ export default function BillingPage() {
   const [error, setError] = useState<string | null>(null);
 
   const effectiveAmount = customAmount ? Number(customAmount) : amount;
+  const hasPhoneNumber = Boolean(profile?.phoneNumber);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+      setProfile(snap.data() as UserProfile);
+    });
+    return () => unsub();
+  }, [user]);
 
   async function handlePurchase() {
     setError(null);
@@ -30,7 +46,6 @@ export default function BillingPage() {
         setError(data.error ?? "Une erreur est survenue.");
         return;
       }
-      // Redirection vers la page de paiement Verzapay (Mobile Money ou carte)
       window.location.href = data.paymentUrl;
     } catch {
       setError("Impossible de contacter le service de paiement.");
@@ -41,18 +56,30 @@ export default function BillingPage() {
 
   return (
     <>
-      {/* Masqué sur mobile, visible uniquement sur desktop */}
-      <div className="hidden md:block">
-        <DashboardTopBar title="Crédits & paiement" />
-      </div>
+      <DashboardTopBar title="Crédits & paiement" />
+      <div className="p-6 md:p-8 max-w-2xl space-y-6">
+        {profile && !hasPhoneNumber && (
+          <div className="rounded-2xl border border-gold/30 bg-gold/5 p-5 flex items-start gap-3">
+            <AlertTriangle size={20} className="text-gold shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm text-white font-medium mb-1">Numéro de téléphone requis</p>
+              <p className="text-sm text-white/60 mb-3">
+                Verzapay exige un numéro de téléphone vérifié pour créer un lien de paiement. Ajoute
+                le tien depuis ton profil avant de continuer.
+              </p>
+              <Link
+                href="/dashboard/profile"
+                className="inline-block rounded-lg bg-gold-gradient px-4 py-2 text-sm font-semibold text-obsidian hover:scale-[1.02] transition-transform"
+              >
+                Ajouter mon numéro →
+              </Link>
+            </div>
+          </div>
+        )}
 
-      {/* pb-24 compense le bottom menu sur mobile, max-w-3xl mx-auto centre et limite la largeur sur grand écran */}
-      <div className="p-4 sm:p-6 md:p-8 pb-24 md:pb-8 max-w-3xl mx-auto space-y-4 sm:space-y-6">
-        
-        {/* Carte de sélection du montant */}
-        <div className="rounded-2xl border border-white/10 bg-obsidian-card p-4 sm:p-6">
+        <div className={cn("rounded-2xl border border-white/10 bg-obsidian-card p-6", !hasPhoneNumber && "opacity-50 pointer-events-none")}>
           <h2 className="text-white font-semibold mb-4">Choisissez un montant (FCFA)</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-3 gap-3 mb-4">
             {PRESET_AMOUNTS.map((amt) => (
               <button
                 key={amt}
@@ -81,14 +108,13 @@ export default function BillingPage() {
           />
         </div>
 
-        {/* Carte de méthode de paiement */}
-        <div className="rounded-2xl border border-white/10 bg-obsidian-card p-4 sm:p-6">
+        <div className={cn("rounded-2xl border border-white/10 bg-obsidian-card p-6", !hasPhoneNumber && "opacity-50 pointer-events-none")}>
           <h2 className="text-white font-semibold mb-4">Méthode de paiement</h2>
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => setMethod("mobile_money")}
               className={cn(
-                "flex flex-col items-center gap-2 rounded-xl border py-4 sm:py-5 transition-colors",
+                "flex flex-col items-center gap-2 rounded-xl border py-5 transition-colors",
                 method === "mobile_money" ? "border-gold bg-gold/10 text-gold" : "border-white/15 text-white/70 hover:border-white/30"
               )}
             >
@@ -98,7 +124,7 @@ export default function BillingPage() {
             <button
               onClick={() => setMethod("card")}
               className={cn(
-                "flex flex-col items-center gap-2 rounded-xl border py-4 sm:py-5 transition-colors",
+                "flex flex-col items-center gap-2 rounded-xl border py-5 transition-colors",
                 method === "card" ? "border-gold bg-gold/10 text-gold" : "border-white/15 text-white/70 hover:border-white/30"
               )}
             >
@@ -108,24 +134,17 @@ export default function BillingPage() {
           </div>
         </div>
 
-        {/* Message d'erreur */}
-        {error && (
-          <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400 text-center">
-            {error}
-          </div>
-        )}
+        {error && <p className="text-sm text-red-400">{error}</p>}
 
-        {/* Bouton d'action */}
         <button
           onClick={handlePurchase}
-          disabled={loading || !effectiveAmount || effectiveAmount < 1000}
-          className="w-full flex items-center justify-center gap-2 rounded-xl bg-gold-gradient py-3.5 font-semibold text-obsidian hover:scale-[1.01] transition-transform disabled:opacity-60 disabled:hover:scale-100"
+          disabled={loading || !effectiveAmount || !hasPhoneNumber}
+          className="w-full flex items-center justify-center gap-2 rounded-xl bg-gold-gradient py-3.5 font-semibold text-obsidian hover:scale-[1.01] transition-transform disabled:opacity-40"
         >
           {loading && <Loader2 size={18} className="animate-spin" />}
           Payer {effectiveAmount ? effectiveAmount.toLocaleString("fr-FR") : 0} FCFA via Verzapay
         </button>
-        
-        <p className="text-xs text-white/40 text-center leading-relaxed">
+        <p className="text-xs text-white/40 text-center">
           Paiement sécurisé traité par Verzapay. Vos crédits sont ajoutés automatiquement dès confirmation.
         </p>
       </div>
