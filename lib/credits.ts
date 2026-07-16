@@ -1,3 +1,9 @@
+/**
+ * Logique de facturation des crédits.
+ * 1 "crédit" = unité interne. La conversion crédits <-> USD est pilotée par
+ * PlatformSettings.creditToUsdRate (modifiable par l'admin), ce qui permet
+ * d'ajuster la marge globale sans redéployer le code.
+ */
 import { adminDb } from "@/lib/firebase/admin";
 import type { AiModel } from "@/types";
 import { FieldValue } from "firebase-admin/firestore";
@@ -40,6 +46,10 @@ export function computeVideoCreditsCharged(params: {
   return Math.max(1, Math.ceil(credits));
 }
 
+/**
+ * Débite atomiquement le solde d'un utilisateur. Lève une erreur si le solde est insuffisant.
+ * Utilise une transaction Firestore pour éviter les conditions de course entre deux appels simultanés.
+ */
 export async function debitCredits(uid: string, amount: number, description: string): Promise<void> {
   const userRef = adminDb.collection("users").doc(uid);
   await adminDb.runTransaction(async (tx) => {
@@ -66,6 +76,16 @@ export async function debitCredits(uid: string, amount: number, description: str
   });
 }
 
+/**
+ * Crédite le solde utilisateur (appelé par le webhook Verzapay après paiement confirmé).
+ *
+ * IMPORTANT : la transaction avec ce verzapayPaymentId existe déjà en base, créée avec
+ * status "pending" au moment de la demande d'achat (voir /api/v1/billing/purchase).
+ * On la MET À JOUR ici plutôt que d'en créer une nouvelle. L'idempotence se fait sur le
+ * statut de cette transaction (si déjà "completed", on ne recrédite pas), et non sur sa
+ * simple existence — sinon la fonction ne créditerait jamais rien, puisque la
+ * transaction "pending" existe systématiquement avant l'appel à cette fonction.
+ */
 export async function creditUserAccount(params: {
   uid: string;
   amountCredits: number;
@@ -76,10 +96,27 @@ export async function creditUserAccount(params: {
   const userRef = adminDb.collection("users").doc(uid);
 
   await adminDb.runTransaction(async (tx) => {
-    const existing = await tx.get(
+    const existingSnap = await tx.get(
       adminDb.collection("transactions").where("verzapayPaymentId", "==", verzapayPaymentId).limit(1)
     );
-    if (!existing.empty) return;
+
+    if (!existingSnap.empty) {
+      const existingDoc = existingSnap.docs[0];
+      const existingStatus = existingDoc.data().status;
+
+      if (existingStatus === "completed") return;
+
+      tx.update(userRef, {
+        creditsBalance: FieldValue.increment(amountCredits),
+        updatedAt: Date.now(),
+      });
+      tx.update(existingDoc.ref, {
+        status: "completed",
+        amountFcfa,
+        description: `Achat de crédits via Verzapay (${amountFcfa} FCFA) — confirmé`,
+      });
+      return;
+    }
 
     tx.update(userRef, {
       creditsBalance: FieldValue.increment(amountCredits),
