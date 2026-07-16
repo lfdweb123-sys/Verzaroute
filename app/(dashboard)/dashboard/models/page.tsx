@@ -5,7 +5,7 @@ import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { DashboardTopBar } from "@/components/dashboard/TopBar";
 import type { AiModel, ProviderId } from "@/types";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, ImagePlus, Film } from "lucide-react";
 import Link from "next/link";
 
 const PROVIDER_LABELS: Record<ProviderId, string> = {
@@ -19,7 +19,19 @@ const PROVIDER_LABELS: Record<ProviderId, string> = {
   minimax: "MiniMax",
   zai: "Z.ai",
   stepfun: "StepFun",
+  meta: "Meta AI (Llama)",
 };
+
+/** Détermine la page dashboard adaptée et le libellé du bouton selon la modality du modèle. */
+function getActionFor(model: AiModel): { href: string; label: string; icon: typeof MessageSquare } {
+  if (model.modality === "image") {
+    return { href: `/dashboard/images?model=${model.id}`, label: "Générer une image", icon: ImagePlus };
+  }
+  if (model.modality === "video") {
+    return { href: `/dashboard/videos?model=${model.id}`, label: "Générer une vidéo", icon: Film };
+  }
+  return { href: `/dashboard/chat?model=${model.id}`, label: "Discuter", icon: MessageSquare };
+}
 
 export default function ModelsPage() {
   const [models, setModels] = useState<AiModel[]>([]);
@@ -36,41 +48,29 @@ export default function ModelsPage() {
 
   return (
     <>
-      {/* Masqué sur mobile, visible uniquement sur desktop */}
-      <div className="hidden md:block">
-        <DashboardTopBar title="Modèles disponibles" />
-      </div>
-
-      {/* pb-24 compense le bottom menu sur mobile, pt-6 remplace le padding de la topbar cachée */}
-      <div className="p-4 sm:p-6 md:p-8 pb-24 md:pb-8">
+      <DashboardTopBar title="Modèles disponibles" />
+      <div className="p-6 md:p-8">
         {loading ? (
-          <p className="text-white/50 text-sm mt-4">Chargement des modèles...</p>
+          <p className="text-white/50 text-sm">Chargement des modèles...</p>
         ) : models.length === 0 ? (
-          <p className="text-white/50 text-sm mt-4">
+          <p className="text-white/50 text-sm">
             Aucun modèle disponible pour le moment. Si tu es admin, lance le script de seed
             (<code className="text-gold">npx tsx scripts/seed.ts</code>) pour peupler le catalogue.
           </p>
         ) : (
-          // Grille responsive : 1 colonne sur mobile, 2 sur tablette, 3 sur grand écran
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {models.map((model) => (
-              <div 
-                key={model.id} 
-                className="rounded-2xl border border-white/10 bg-obsidian-card p-4 md:p-5 card-glow transition-all flex flex-col h-full"
-              >
+              <div key={model.id} className="rounded-2xl border border-white/10 bg-obsidian-card p-5 card-glow transition-all flex flex-col">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-white/40">
                     {PROVIDER_LABELS[model.provider]}
                   </span>
-                  <span className="rounded-full bg-gold/10 border border-gold/30 px-2.5 py-0.5 text-[11px] text-gold whitespace-nowrap">
+                  <span className="rounded-full bg-gold/10 border border-gold/30 px-2.5 py-0.5 text-[11px] text-gold">
                     {(model.contextWindow / 1000).toFixed(0)}K ctx
                   </span>
                 </div>
-                
-                <h3 className="text-base md:text-lg text-white font-semibold mb-1.5">{model.displayName}</h3>
-                <p className="text-xs md:text-sm text-white/60 mb-4 leading-relaxed flex-1 line-clamp-3">
-                  {model.description}
-                </p>
+                <h3 className="text-white font-semibold mb-1.5">{model.displayName}</h3>
+                <p className="text-sm text-white/60 mb-4 leading-relaxed flex-1">{model.description}</p>
 
                 <div className="flex flex-wrap gap-1.5 mb-4">
                   {model.tags.map((tag) => (
@@ -80,14 +80,14 @@ export default function ModelsPage() {
                   ))}
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-3 border-t border-white/5 gap-3">
+                <div className="flex items-center justify-between pt-3 border-t border-white/5">
                   <p className="text-xs text-white/40">
                     ${model.inputPricePerMTokUsd.toFixed(2)} / ${model.outputPricePerMTokUsd.toFixed(2)}
-                    <span className="block sm:inline sm:ml-1">par 1M tokens (in/out)</span>
+                    <span className="block">par 1M tokens (in/out)</span>
                   </p>
                   <Link
                     href={`/dashboard/chat?model=${model.id}`}
-                    className="flex items-center justify-center gap-1.5 rounded-lg bg-gold-gradient px-3 py-2 text-xs font-semibold text-obsidian hover:scale-[1.03] transition-transform w-full sm:w-auto"
+                    className="flex items-center gap-1.5 rounded-lg bg-gold-gradient px-3 py-2 text-xs font-semibold text-obsidian hover:scale-[1.03] transition-transform"
                   >
                     <MessageSquare size={14} /> Discuter
                   </Link>
