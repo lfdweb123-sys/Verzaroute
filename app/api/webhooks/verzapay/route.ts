@@ -25,15 +25,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "JSON invalide" }, { status: 400 });
   }
 
-  // Journalisation systématique de l'événement brut pour audit/débogage
   await adminDb.collection("verzapayEvents").add({
-    event: event.event,
+    type: event.type,
     paymentId: event.data?.id ?? null,
     receivedAt: Date.now(),
     raw: event,
   });
 
-  if (event.event === "payment.completed") {
+  if (event.type === "payment.completed") {
     const { uid, creditsRequested } = event.data.metadata ?? {};
     if (!uid) {
       return NextResponse.json({ error: "metadata.uid manquant" }, { status: 400 });
@@ -46,6 +45,5 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Toujours répondre 200 rapidement pour éviter les retries excessifs de Verzapay
   return NextResponse.json({ received: true });
 }

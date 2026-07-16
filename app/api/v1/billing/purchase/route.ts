@@ -1,3 +1,7 @@
+/**
+ * Crée une demande de paiement Verzapay pour l'achat de crédits.
+ * Appelé depuis le dashboard (utilisateur connecté via cookie de session).
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
@@ -60,9 +64,9 @@ export async function POST(req: NextRequest) {
 
   const payment = await createVerzapayPayment({
     amountFcfa,
-    method,
-    customerEmail: user.email ?? "",
+    customerName: user.name ?? user.email?.split("@")[0] ?? "Client VerzaRoute",
     customerPhone: phoneNumber,
+    description: `Achat de ${creditsRequested} crédits VerzaRoute (${amountFcfa} FCFA)`,
     metadata: { uid: user.uid, creditsRequested: String(creditsRequested) },
     callbackUrl: `${appUrl}/api/webhooks/verzapay`,
     returnUrl: `${appUrl}/dashboard/billing?status=return`,

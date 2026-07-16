@@ -1,6 +1,11 @@
 /**
  * Client Verzapay — SERVEUR UNIQUEMENT.
  * La clé secrète (VERZAPAY_SECRET_KEY) ne doit jamais être exposée au frontend.
+ *
+ * Format aligné sur la documentation officielle Verzapay (POST /payments) :
+ * - customer_name / customer_phone en champs plats (pas d'objet imbriqué)
+ * - pas de champ payment_method : la méthode et le pays sont déduits du numéro
+ * - la réponse contient checkout_url (pas payment_url/paymentUrl)
  */
 import { createHmac, timingSafeEqual } from "crypto";
 
@@ -9,12 +14,12 @@ const BASE_URL = process.env.VERZAPAY_BASE_URL ?? "https://www.verzapay.com/api/
 export interface CreatePaymentParams {
   amountFcfa: number;
   currency?: "XOF" | "XAF";
-  customerEmail: string;
-  customerPhone?: string;
-  method: "mobile_money" | "card";
-  metadata: Record<string, string>;
-  callbackUrl: string;
-  returnUrl: string;
+  customerName: string;
+  customerPhone: string;
+  description: string;
+  metadata?: Record<string, string>;
+  callbackUrl?: string;
+  returnUrl?: string;
 }
 
 export interface VerzapayPaymentResponse {
@@ -31,11 +36,12 @@ export async function createVerzapayPayment(params: CreatePaymentParams): Promis
   const requestBody = {
     amount: params.amountFcfa,
     currency: params.currency ?? "XOF",
-    customer: { email: params.customerEmail, phone: params.customerPhone },
-    payment_method: params.method,
-    metadata: params.metadata,
-    callback_url: params.callbackUrl,
-    return_url: params.returnUrl,
+    description: params.description,
+    customer_name: params.customerName,
+    customer_phone: params.customerPhone,
+    ...(params.metadata ? { metadata: params.metadata } : {}),
+    ...(params.callbackUrl ? { callback_url: params.callbackUrl } : {}),
+    ...(params.returnUrl ? { return_url: params.returnUrl } : {}),
   };
 
   console.log("[VZR-VERZAPAY] Requête envoyée à", `${BASE_URL}/payments`, ":", JSON.stringify(requestBody));
@@ -54,7 +60,6 @@ export async function createVerzapayPayment(params: CreatePaymentParams): Promis
   if (!res.ok) {
     const errText = await res.text().catch(() => res.statusText);
     console.error("[VZR-VERZAPAY] Corps complet de l'erreur Verzapay:", errText);
-    console.error("[VZR-VERZAPAY] En-têtes de la réponse:", JSON.stringify(Object.fromEntries(res.headers.entries())));
     throw new Error(`[verzapay] Erreur création paiement (${res.status}): ${errText}`);
   }
 
@@ -63,7 +68,7 @@ export async function createVerzapayPayment(params: CreatePaymentParams): Promis
   return {
     id: data.id,
     status: data.status,
-    paymentUrl: data.payment_url ?? data.paymentUrl,
+    paymentUrl: data.checkout_url,
     amountFcfa: data.amount ?? params.amountFcfa,
   };
 }
@@ -80,12 +85,12 @@ export function verifyVerzapayWebhookSignature(rawBody: string, signatureHeader:
 }
 
 export interface VerzapayWebhookEvent {
-  event: "payment.completed" | "payment.failed" | string;
+  type: "payment.completed" | "payment.failed" | "payout.completed" | "payout.failed" | string;
   data: {
     id: string;
     amount: number;
     currency: string;
-    metadata: Record<string, string>;
+    metadata?: Record<string, string>;
     status: string;
   };
 }
