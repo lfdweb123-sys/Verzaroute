@@ -6,7 +6,7 @@ import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { DashboardTopBar } from "@/components/dashboard/TopBar";
 import type { AiModel } from "@/types";
-import { Send, Loader2, Bot, User as UserIcon, Paperclip, X, FileText, Globe, Image as ImageIcon, ChevronDown } from "lucide-react";
+import { Send, Loader2, Bot, User as UserIcon, Paperclip, X, FileText, Globe, Image as ImageIcon, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 type ContentBlock =
@@ -288,11 +288,11 @@ function ChatContent() {
 
           <div
             className={cn(
-              "rounded-2xl border border-white/10 bg-obsidian-card overflow-hidden",
+              "rounded-2xl border border-white/10 bg-obsidian-card overflow-visible",
               hasStartedConversation && "border-white/15"
             )}
           >
-            {/* Ligne du haut : sélecteur de modèle + prix (un seul affichage de prix) */}
+            {/* Ligne du haut : sélecteur de modèle + prix */}
             <div className="flex items-center justify-between px-3 sm:px-4 pt-2.5 sm:pt-3 pb-1">
               <div className="relative" ref={modelPickerRef}>
                 <button
@@ -301,11 +301,12 @@ function ChatContent() {
                 >
                   <span className="uppercase tracking-wide">Modèle :</span>
                   <span className="font-medium text-white/85">{currentModel?.displayName ?? "Sélectionner"}</span>
-                  <ChevronDown size={12} className={cn("transition-transform", modelPickerOpen && "rotate-180")} />
+                  <ChevronUp size={12} className={cn("transition-transform", modelPickerOpen && "rotate-180")} />
                 </button>
 
+                {/* Dropdown ouvert VERS LE HAUT : bottom-full au lieu de top-full */}
                 {modelPickerOpen && (
-                  <div className="absolute left-0 top-full mt-2 w-56 rounded-xl border border-white/10 bg-obsidian shadow-xl z-20 overflow-hidden">
+                  <div className="absolute left-0 bottom-full mb-2 w-56 max-h-64 overflow-y-auto rounded-xl border border-white/10 bg-obsidian shadow-xl z-50">
                     {models.map((m) => (
                       <button
                         key={m.id}
@@ -315,7 +316,7 @@ function ChatContent() {
                           if (hasStartedConversation) setMessages([]);
                         }}
                         className={cn(
-                          "w-full px-3 py-2 text-left text-xs sm:text-sm hover:bg-white/5 transition-colors truncate",
+                          "w-full px-3 py-2 text-left text-xs sm:text-sm hover:bg-white/5 transition-colors truncate block",
                           m.id === selectedModel ? "text-gold" : "text-white/80"
                         )}
                       >
