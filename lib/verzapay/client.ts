@@ -2,10 +2,16 @@
  * Client Verzapay — SERVEUR UNIQUEMENT.
  * La clé secrète (VERZAPAY_SECRET_KEY) ne doit jamais être exposée au frontend.
  *
- * Format aligné sur la documentation officielle Verzapay (POST /payments) :
- * - customer_name / customer_phone en champs plats (pas d'objet imbriqué)
- * - pas de champ payment_method : la méthode et le pays sont déduits du numéro
- * - la réponse contient checkout_url (pas payment_url/paymentUrl)
+ * IMPORTANT : la documentation officielle de Verzapay ne décrit AUCUN mécanisme de
+ * signature de webhook (pas de header, pas d'algorithme) — leur propre exemple de
+ * handler Node.js lit event.type directement depuis req.body sans aucune vérification.
+ * Confirmé empiriquement : nos tests réels ne reçoivent jamais de header de signature.
+ * On ne peut donc pas vérifier l'authenticité cryptographique de ces webhooks tant que
+ * Verzapay n'implémente pas ce mécanisme. À la place, on vérifie que companyId
+ * correspond à ton propre compte marchand, ce qui est un filtre partiel mais réel.
+ *
+ * Format RÉEL confirmé du payload webhook (plat, pas d'objet "data") :
+ * { type, paymentId, amount, currency, status, customerName, customerPhone, companyId, metadata? }
  */
 import { createHmac, timingSafeEqual } from "crypto";
 
@@ -73,6 +79,22 @@ export async function createVerzapayPayment(params: CreatePaymentParams): Promis
   };
 }
 
+/**
+ * Vérifie que l'événement webhook provient bien de TON compte marchand Verzapay,
+ * en comparant companyId au tien (variable d'env VERZAPAY_COMPANY_ID).
+ * Ce n'est PAS une vérification cryptographique (Verzapay n'en propose aucune à ce
+ * jour d'après leur documentation) — c'est un filtre partiel en attendant mieux.
+ */
+export function isVerzapayEventFromOurAccount(companyId: string | undefined): boolean {
+  const ourCompanyId = process.env.VERZAPAY_COMPANY_ID;
+  if (!ourCompanyId) {
+    console.warn("[VZR-VERZAPAY] VERZAPAY_COMPANY_ID non configuré — impossible de filtrer par companyId");
+    return true;
+  }
+  return companyId === ourCompanyId;
+}
+
+/** Conservé pour compatibilité si Verzapay ajoute un jour un vrai mécanisme de signature. */
 export function verifyVerzapayWebhookSignature(rawBody: string, signatureHeader: string | null): boolean {
   const secret = process.env.VERZAPAY_WEBHOOK_SECRET;
   if (!secret || !signatureHeader) return false;
@@ -84,13 +106,16 @@ export function verifyVerzapayWebhookSignature(rawBody: string, signatureHeader:
   return timingSafeEqual(expectedBuf, receivedBuf);
 }
 
+/** Format RÉEL confirmé du webhook Verzapay (payload plat, pas d'objet "data"). */
 export interface VerzapayWebhookEvent {
   type: "payment.completed" | "payment.failed" | "payout.completed" | "payout.failed" | string;
-  data: {
-    id: string;
-    amount: number;
-    currency: string;
-    metadata?: Record<string, string>;
-    status: string;
-  };
+  paymentId: string;
+  merchantReference?: string | null;
+  amount: number;
+  currency: string;
+  status: string;
+  customerName?: string;
+  customerPhone?: string;
+  companyId?: string;
+  metadata?: Record<string, string>;
 }

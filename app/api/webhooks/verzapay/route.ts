@@ -1,13 +1,22 @@
 /**
  * Webhook Verzapay — reçoit les notifications de paiement.
- * Sécurité : vérifie la signature HMAC avant tout traitement (voir lib/verzapay/client.ts).
- * Idempotent : creditUserAccount() ignore les paiements déjà traités (par verzapayPaymentId).
  *
- * DEBUG : tous les logs de cette route sont préfixés "[VZR-WEBHOOK]" et visibles
- * dans Vercel → ton projet → onglet "Logs".
+ * SÉCURITÉ (lire attentivement) : la documentation Verzapay ne décrit aucun mécanisme
+ * de signature cryptographique, et nos tests réels confirment qu'aucun header de
+ * signature n'est envoyé. On applique donc un filtre partiel par companyId (voir
+ * lib/verzapay/client.ts) plutôt qu'une vraie vérification d'authenticité.
+ * CECI EST UNE LIMITATION CONNUE tant que Verzapay n'implémente pas de signature —
+ * n'importe qui connaissant cette URL et ton companyId pourrait forger un faux
+ * événement payment.completed. À durcir dès que Verzapay propose un vrai mécanisme.
+ *
+ * Format RÉEL confirmé du payload (plat, sans objet "data") :
+ * { type, paymentId, amount, currency, status, customerName, customerPhone, companyId, metadata? }
+ *
+ * Idempotent : creditUserAccount() ignore les paiements déjà traités (par verzapayPaymentId).
+ * DEBUG : logs préfixés "[VZR-WEBHOOK]", visibles dans Vercel → Logs.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { verifyVerzapayWebhookSignature, type VerzapayWebhookEvent } from "@/lib/verzapay/client";
+import { isVerzapayEventFromOurAccount, type VerzapayWebhookEvent } from "@/lib/verzapay/client";
 import { creditUserAccount } from "@/lib/credits";
 import { adminDb } from "@/lib/firebase/admin";
 
@@ -19,20 +28,6 @@ export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   console.log("[VZR-WEBHOOK] Corps brut reçu:", rawBody);
 
-  const signature = req.headers.get("x-verzapay-signature");
-  console.log("[VZR-WEBHOOK] En-tête X-Verzapay-Signature présent ?", Boolean(signature));
-  if (signature) {
-    console.log("[VZR-WEBHOOK] Valeur de la signature reçue:", signature);
-  }
-
-  const signatureValid = verifyVerzapayWebhookSignature(rawBody, signature);
-  console.log("[VZR-WEBHOOK] Signature valide ?", signatureValid);
-
-  if (!signatureValid) {
-    console.warn("[VZR-WEBHOOK] Signature invalide ou manquante — requête rejetée (401)");
-    return NextResponse.json({ error: "Signature invalide" }, { status: 401 });
-  }
-
   let event: VerzapayWebhookEvent;
   try {
     event = JSON.parse(rawBody);
@@ -42,14 +37,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "JSON invalide" }, { status: 400 });
   }
 
+  const fromOurAccount = isVerzapayEventFromOurAccount(event.companyId);
+  console.log("[VZR-WEBHOOK] companyId reçu:", event.companyId, "— correspond à notre compte ?", fromOurAccount);
+
+  if (!fromOurAccount) {
+    console.warn("[VZR-WEBHOOK] companyId ne correspond pas à notre compte — requête rejetée (401)");
+    return NextResponse.json({ error: "companyId invalide" }, { status: 401 });
+  }
+
   console.log("[VZR-WEBHOOK] Type d'événement:", event.type);
-  console.log("[VZR-WEBHOOK] Données de l'événement (event.data):", JSON.stringify(event.data));
-  console.log("[VZR-WEBHOOK] Metadata reçue:", JSON.stringify(event.data?.metadata));
+  console.log("[VZR-WEBHOOK] paymentId:", event.paymentId, "— amount:", event.amount, "— status:", event.status);
+  console.log("[VZR-WEBHOOK] Metadata reçue:", JSON.stringify(event.metadata));
 
   try {
     await adminDb.collection("verzapayEvents").add({
       type: event.type,
-      paymentId: event.data?.id ?? null,
+      paymentId: event.paymentId ?? null,
       receivedAt: Date.now(),
       raw: event,
     });
@@ -59,14 +62,13 @@ export async function POST(req: NextRequest) {
   }
 
   if (event.type === "payment.completed") {
-    console.log("[VZR-WEBHOOK] Événement de type payment.completed détecté, traitement du crédit...");
+    console.log("[VZR-WEBHOOK] payment.completed détecté, traitement du crédit...");
 
-    const { uid, creditsRequested } = event.data.metadata ?? {};
-    console.log("[VZR-WEBHOOK] uid extrait de metadata:", uid);
-    console.log("[VZR-WEBHOOK] creditsRequested extrait de metadata:", creditsRequested);
+    const { uid, creditsRequested } = event.metadata ?? {};
+    console.log("[VZR-WEBHOOK] uid extrait de metadata:", uid, "— creditsRequested:", creditsRequested);
 
     if (!uid) {
-      console.error("[VZR-WEBHOOK] ERREUR: metadata.uid manquant dans l'événement — impossible de créditer");
+      console.error("[VZR-WEBHOOK] ERREUR: metadata.uid manquant — impossible de créditer. Metadata complète:", JSON.stringify(event.metadata));
       return NextResponse.json({ error: "metadata.uid manquant" }, { status: 400 });
     }
 
@@ -74,14 +76,16 @@ export async function POST(req: NextRequest) {
       await creditUserAccount({
         uid,
         amountCredits: Number(creditsRequested ?? 0),
-        amountFcfa: event.data.amount,
-        verzapayPaymentId: event.data.id,
+        amountFcfa: event.amount,
+        verzapayPaymentId: event.paymentId,
       });
       console.log("[VZR-WEBHOOK] Compte crédité avec succès pour uid:", uid);
     } catch (err) {
       console.error("[VZR-WEBHOOK] ERREUR lors du crédit du compte:", err);
       throw err;
     }
+  } else if (event.type === "payment.failed") {
+    console.log("[VZR-WEBHOOK] payment.failed reçu — aucune action de crédit (comportement attendu).");
   } else {
     console.log("[VZR-WEBHOOK] Type d'événement non traité (ignoré):", event.type);
   }
