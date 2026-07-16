@@ -6,7 +6,7 @@ import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { DashboardTopBar } from "@/components/dashboard/TopBar";
 import type { AiModel } from "@/types";
-import { Send, Loader2, Bot, User as UserIcon, Paperclip, X, FileText } from "lucide-react";
+import { Send, Loader2, Bot, User as UserIcon, Paperclip, X, FileText, Globe, Image as ImageIcon, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 type ContentBlock =
@@ -48,6 +48,7 @@ function ChatContent() {
   const searchParams = useSearchParams();
   const [models, setModels] = useState<AiModel[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>(searchParams.get("model") ?? "");
+  const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
@@ -55,6 +56,7 @@ function ChatContent() {
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const modelPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const q = query(collection(db, "models"), orderBy("displayName"));
@@ -70,6 +72,16 @@ function ChatContent() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (modelPickerRef.current && !modelPickerRef.current.contains(e.target as Node)) {
+        setModelPickerOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -161,7 +173,7 @@ function ChatContent() {
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && (e.altKey || (!e.shiftKey && window.innerWidth >= 768))) {
       e.preventDefault();
       handleSend();
     }
@@ -194,12 +206,10 @@ function ChatContent() {
 
   return (
     <>
-      {/* Masqué sur mobile, visible uniquement sur desktop */}
       <div className="hidden md:block">
         <DashboardTopBar title="Discuter avec un modèle" />
       </div>
 
-      {/* Container principal - centrage dynamique */}
       <div
         className={cn(
           "flex flex-col w-full transition-all duration-500 ease-in-out",
@@ -208,62 +218,11 @@ function ChatContent() {
             : "min-h-[100dvh] justify-center px-3 sm:px-4"
         )}
       >
-        {/* Sélecteur de modèle - caché quand pas de conversation */}
-        {hasStartedConversation && (
-          <div className="border-b border-white/10 p-2 sm:p-3 md:p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 bg-obsidian-card">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <label className="text-xs sm:text-sm text-white/60 shrink-0">Modèle :</label>
-              <select
-                value={selectedModel}
-                onChange={(e) => {
-                  setSelectedModel(e.target.value);
-                  setMessages([]);
-                }}
-                className="flex-1 sm:flex-none min-w-0 rounded-lg bg-obsidian border border-white/15 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white outline-none focus:border-gold/50"
-              >
-                {models.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.displayName}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {currentModel && (
-              <span className="text-[10px] sm:text-xs text-white/40 hidden sm:inline whitespace-nowrap">
-                ${currentModel.inputPricePerMTokUsd.toFixed(2)} / ${currentModel.outputPricePerMTokUsd.toFixed(2)} / 1M tokens
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Sélecteur de modèle - visible seulement AVANT le début de la conversation */}
-        {!hasStartedConversation && (
-          <div className="max-w-2xl w-full mx-auto mb-3 flex items-center gap-2 sm:gap-3">
-            <label className="text-xs sm:text-sm text-white/60 shrink-0">Modèle :</label>
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              className="flex-1 min-w-0 rounded-lg bg-obsidian-card border border-white/15 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white outline-none focus:border-gold/50"
-            >
-              {models.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.displayName}
-                </option>
-              ))}
-            </select>
-            {currentModel && (
-              <span className="text-[10px] sm:text-xs text-white/40 hidden sm:inline whitespace-nowrap shrink-0">
-                ${currentModel.inputPricePerMTokUsd.toFixed(2)} / ${currentModel.outputPricePerMTokUsd.toFixed(2)} / 1M tokens
-              </span>
-            )}
-          </div>
-        )}
-
         {/* Zone de messages */}
         {hasStartedConversation && (
           <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-3 md:p-6 space-y-2 sm:space-y-3 md:space-y-4 pb-4 sm:pb-4 min-h-0"
+            className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-3 md:p-6 space-y-2 sm:space-y-3 md:space-y-4 pb-4 min-h-0"
             style={{ scrollBehavior: "smooth" }}
           >
             {messages.map((msg, i) => (
@@ -312,48 +271,13 @@ function ChatContent() {
           </div>
         )}
 
-        {/* Pièces jointes en attente */}
-        {attachments.length > 0 && (
-          <div
-            className={cn(
-              "py-2 flex flex-wrap gap-2 max-h-24 overflow-y-auto",
-              hasStartedConversation
-                ? "px-2 sm:px-3 md:px-4 border-t border-white/10 bg-obsidian/50"
-                : "max-w-2xl w-full mx-auto mb-3"
-            )}
-          >
-            {attachments.map((att) => (
-              <div
-                key={att.id}
-                className="relative flex items-center gap-1.5 sm:gap-2 rounded-lg border border-white/15 bg-obsidian-card px-2 py-1 sm:px-2.5 sm:py-1.5 shrink-0"
-              >
-                {att.previewUrl ? (
-                  <img src={att.previewUrl} alt={att.file.name} className="h-8 w-8 sm:h-10 sm:w-10 rounded object-cover" />
-                ) : (
-                  <FileText size={14} className="text-gold shrink-0" />
-                )}
-                <span className="text-[10px] sm:text-xs text-white/70 max-w-[80px] sm:max-w-[120px] truncate">
-                  {att.file.name}
-                </span>
-                <button
-                  onClick={() => removeAttachment(att.id)}
-                  className="text-white/40 hover:text-red-400 shrink-0 p-0.5"
-                  aria-label="Retirer"
-                >
-                  <X size={12} className="sm:w-3.5 sm:h-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Zone de saisie - positionnement dynamique */}
+        {/* Bloc composer (input + sélecteur) - design carte unique comme l'image 2 */}
         <div
           className={cn(
-            "transition-all duration-500 ease-in-out w-full",
+            "w-full",
             hasStartedConversation
-              ? "border-t border-white/10 p-2 sm:p-3 md:p-4 flex items-end gap-1.5 sm:gap-2 md:gap-3 bg-obsidian-card"
-              : "flex items-center gap-2 sm:gap-3 max-w-2xl mx-auto"
+              ? "border-t border-white/10 p-2 sm:p-3 md:p-4 bg-obsidian-card"
+              : "max-w-2xl mx-auto"
           )}
         >
           <input
@@ -365,120 +289,146 @@ function ChatContent() {
             className="hidden"
           />
 
-          {/* Bouton + (visible seulement sans conversation) */}
-          {!hasStartedConversation && (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={attachments.length >= MAX_ATTACHMENTS}
-              className="shrink-0 rounded-full sm:rounded-xl border border-white/15 p-2.5 sm:p-2.5 md:p-3 text-white/60 hover:text-gold hover:border-gold/40 transition-colors disabled:opacity-40"
-              aria-label="Joindre un fichier"
-              title="Joindre une image ou un document"
-            >
-              <Paperclip size={16} className="sm:w-[18px] sm:h-[18px]" />
-            </button>
-          )}
-
-          {/* Input principal - design comme l'image */}
           <div
             className={cn(
-              "flex items-center gap-2 sm:gap-3 rounded-2xl border transition-colors min-w-0",
-              hasStartedConversation
-                ? "flex-1 border-white/15 bg-obsidian px-2.5 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3"
-                : "flex-1 border-white/10 bg-obsidian-card px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-4 hover:border-white/20"
+              "rounded-2xl border border-white/10 bg-obsidian-card overflow-hidden",
+              hasStartedConversation && "border-white/15"
             )}
           >
-            {/* Bouton + dans l'input (visible avec conversation) */}
-            {hasStartedConversation && (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={attachments.length >= MAX_ATTACHMENTS}
-                className="shrink-0 rounded-xl p-1.5 sm:p-2 text-white/60 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-40"
-                aria-label="Joindre un fichier"
-              >
-                <Paperclip size={16} />
-              </button>
-            )}
-
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={hasStartedConversation ? "Écris ton message..." : "Tapez / pour les compétences"}
-              rows={1}
-              className={cn(
-                "resize-none bg-transparent text-white outline-none leading-relaxed min-w-0 w-full",
-                hasStartedConversation
-                  ? "flex-1 placeholder:text-white/40 text-xs sm:text-sm max-h-24 sm:max-h-32"
-                  : "flex-1 placeholder:text-white/40 text-sm sm:text-base md:text-lg max-h-24"
-              )}
-              style={{ minHeight: "24px" }}
-            />
-
-            {/* Controls droite (visibles seulement avec conversation) */}
-            {hasStartedConversation && (
-              <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
-                <select
-                  value={selectedModel}
-                  onChange={(e) => {
-                    setSelectedModel(e.target.value);
-                    setMessages([]);
-                  }}
-                  className="hidden md:block rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-white outline-none focus:border-gold/50 cursor-pointer"
-                >
-                  {models.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.displayName}
-                    </option>
-                  ))}
-                </select>
-
-                {currentModel && (
-                  <span className="hidden lg:inline text-xs text-white/40 px-2">Moyen</span>
-                )}
-
+            {/* Ligne du haut : sélecteur de modèle + prix */}
+            <div className="flex items-center justify-between px-3 sm:px-4 pt-2.5 sm:pt-3 pb-1">
+              <div className="relative" ref={modelPickerRef}>
                 <button
-                  className="hidden sm:inline-flex rounded-xl p-1.5 sm:p-2 text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-                  aria-label="Entrée vocale"
+                  onClick={() => setModelPickerOpen((v) => !v)}
+                  className="flex items-center gap-1.5 text-[11px] sm:text-xs text-white/60 hover:text-white/80 transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
+                  <span className="uppercase tracking-wide">Modèle :</span>
+                  <span className="font-medium text-white/85">{currentModel?.displayName ?? "Sélectionner"}</span>
+                  <ChevronDown size={12} className={cn("transition-transform", modelPickerOpen && "rotate-180")} />
                 </button>
 
+                {modelPickerOpen && (
+                  <div className="absolute left-0 top-full mt-2 w-56 rounded-xl border border-white/10 bg-obsidian shadow-xl z-20 overflow-hidden">
+                    {models.map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => {
+                          setSelectedModel(m.id);
+                          setModelPickerOpen(false);
+                          if (hasStartedConversation) setMessages([]);
+                        }}
+                        className={cn(
+                          "w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-xs sm:text-sm hover:bg-white/5 transition-colors",
+                          m.id === selectedModel ? "text-gold" : "text-white/80"
+                        )}
+                      >
+                        <span className="truncate">{m.displayName}</span>
+                        <span className="text-[10px] text-white/40 shrink-0">
+                          ${m.inputPricePerMTokUsd.toFixed(2)}/${m.outputPricePerMTokUsd.toFixed(2)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {currentModel && (
+                <span className="text-[10px] sm:text-xs text-white/40 whitespace-nowrap">
+                  ${currentModel.inputPricePerMTokUsd.toFixed(2)} / ${currentModel.outputPricePerMTokUsd.toFixed(2)} / 1M tokens
+                </span>
+              )}
+            </div>
+
+            {/* Textarea */}
+            <div className="px-3 sm:px-4 pt-1">
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Posez n'importe quelle question..."
+                rows={1}
+                className="w-full resize-none bg-transparent text-white outline-none leading-relaxed placeholder:text-white/40 text-sm sm:text-base max-h-24 sm:max-h-32"
+                style={{ minHeight: "24px" }}
+              />
+            </div>
+
+            {/* Ligne du bas : icônes gauche + Alt+Enter + bouton envoyer */}
+            <div className="flex items-center justify-between px-2.5 sm:px-3 pb-2.5 sm:pb-3 pt-1.5 sm:pt-2">
+              <div className="flex items-center gap-0.5 sm:gap-1">
                 <button
-                  className="hidden sm:inline-flex rounded-xl p-1.5 sm:p-2 text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-                  aria-label="Lecture audio"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={attachments.length >= MAX_ATTACHMENTS}
+                  className="rounded-lg p-1.5 sm:p-2 text-white/50 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-40"
+                  aria-label="Joindre un fichier"
+                  title="Joindre un fichier"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                  </svg>
+                  <Paperclip size={16} />
+                </button>
+                <button
+                  className="rounded-lg p-1.5 sm:p-2 text-white/50 hover:text-white hover:bg-white/5 transition-colors"
+                  aria-label="Recherche web"
+                  title="Recherche web"
+                >
+                  <Globe size={16} />
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-lg p-1.5 sm:p-2 text-white/50 hover:text-white hover:bg-white/5 transition-colors"
+                  aria-label="Joindre une image"
+                  title="Joindre une image"
+                >
+                  <ImageIcon size={16} />
                 </button>
               </div>
-            )}
 
-            {/* Bouton envoyer (visible seulement avec conversation) */}
-            {hasStartedConversation && (
-              <button
-                onClick={handleSend}
-                disabled={loading || (!input.trim() && attachments.length === 0) || !selectedModel}
-                className="shrink-0 rounded-xl bg-gold-gradient p-2 sm:p-2.5 md:p-3 text-obsidian hover:scale-[1.05] transition-transform disabled:opacity-40 disabled:hover:scale-100"
-                aria-label="Envoyer"
-              >
-                <Send size={16} className="sm:w-[18px] sm:h-[18px]" />
-              </button>
-            )}
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="hidden sm:inline text-[10px] text-white/30 uppercase tracking-wide">
+                  Alt + Entrée pour envoyer
+                </span>
+                <button
+                  onClick={handleSend}
+                  disabled={loading || (!input.trim() && attachments.length === 0) || !selectedModel}
+                  className="shrink-0 rounded-xl bg-gold-gradient p-2 sm:p-2.5 text-obsidian hover:scale-[1.05] transition-transform disabled:opacity-40 disabled:hover:scale-100"
+                  aria-label="Envoyer"
+                >
+                  {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Bouton envoyer standalone (visible seulement sans conversation) */}
+          {/* Pièces jointes en attente */}
+          {attachments.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2 max-h-24 overflow-y-auto">
+              {attachments.map((att) => (
+                <div
+                  key={att.id}
+                  className="relative flex items-center gap-1.5 sm:gap-2 rounded-lg border border-white/15 bg-obsidian-card px-2 py-1 sm:px-2.5 sm:py-1.5 shrink-0"
+                >
+                  {att.previewUrl ? (
+                    <img src={att.previewUrl} alt={att.file.name} className="h-8 w-8 sm:h-10 sm:w-10 rounded object-cover" />
+                  ) : (
+                    <FileText size={14} className="text-gold shrink-0" />
+                  )}
+                  <span className="text-[10px] sm:text-xs text-white/70 max-w-[80px] sm:max-w-[120px] truncate">
+                    {att.file.name}
+                  </span>
+                  <button
+                    onClick={() => removeAttachment(att.id)}
+                    className="text-white/40 hover:text-red-400 shrink-0 p-0.5"
+                    aria-label="Retirer"
+                  >
+                    <X size={12} className="sm:w-3.5 sm:h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {!hasStartedConversation && (
-            <button
-              onClick={handleSend}
-              disabled={loading || (!input.trim() && attachments.length === 0) || !selectedModel}
-              className="shrink-0 rounded-full sm:rounded-xl bg-gold-gradient p-2.5 sm:p-2.5 md:p-3 text-obsidian hover:scale-[1.05] transition-transform disabled:opacity-40 disabled:hover:scale-100"
-              aria-label="Envoyer"
-            >
-              <Send size={16} className="sm:w-[18px] sm:h-[18px]" />
-            </button>
+            <p className="mt-2 text-center text-[10px] sm:text-xs text-white/30">
+              Assiste Intelligence peut faire des erreurs. Vérifiez les informations importantes.
+            </p>
           )}
         </div>
       </div>
