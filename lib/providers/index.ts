@@ -38,12 +38,12 @@ function buildRegistry(): Record<ProviderId, AiProviderAdapter> {
     }),
     moonshot: createOpenAiCompatibleAdapter({
       id: "moonshot",
-      baseUrl: "https://api.moonshot.cn/v1", // Kimi (Moonshot AI)
+      baseUrl: "https://api.moonshot.ai/v1", // Kimi (Moonshot AI) — .ai est le domaine actuel, .cn est obsolète
       apiKey: process.env.MOONSHOT_API_KEY,
     }),
     minimax: createOpenAiCompatibleAdapter({
       id: "minimax",
-      baseUrl: "https://api.minimax.chat/v1",
+      baseUrl: "https://api.minimax.io/v1",
       apiKey: process.env.MINIMAX_API_KEY,
     }),
     zai: createOpenAiCompatibleAdapter({

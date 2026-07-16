@@ -1,3 +1,15 @@
+/**
+ * Catalogue de référence des modèles IA proposés par VerzaRoute.
+ * Ces données sont utilisées pour SEEDER Firestore (collection `models`) au premier lancement,
+ * et affichées sur la page d'accueil. La marge et l'activation sont ensuite pilotables
+ * depuis le dashboard admin (/admin/dashboard/models), Firestore reste la source de vérité en prod.
+ *
+ * IMPORTANT : le champ `id` (généré par scripts/seed.ts à partir de displayName) doit
+ * correspondre EXACTEMENT à l'identifiant de modèle attendu par l'API du fournisseur.
+ * Ces identifiants ont été vérifiés par recherche web (juillet 2026) suite à plusieurs
+ * erreurs 404/400 "Unknown Model" en production causées par des noms de modèles obsolètes
+ * ou mal formatés (points remplacés par des tirets, versions dépréciées, etc.).
+ */
 import type { AiModel } from "@/types";
 
 export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
@@ -91,7 +103,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   },
   {
     provider: "mistral",
-    displayName: "Mistral Large 2",
+    displayName: "Mistral Large",
     description: "Modèle européen (France) performant en multilingue et raisonnement.",
     contextWindow: 128000,
     inputPricePerMTokUsd: 2,
@@ -102,9 +114,9 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   },
   {
     provider: "moonshot",
-    displayName: "Kimi K2",
+    displayName: "Kimi K2.6",
     description: "Modèle de Moonshot AI, très bon en agents et longues conversations.",
-    contextWindow: 200000,
+    contextWindow: 256000,
     inputPricePerMTokUsd: 0.6,
     outputPricePerMTokUsd: 2.5,
     marginPercent: 25,
@@ -115,7 +127,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     provider: "minimax",
     displayName: "MiniMax M2",
     description: "Modèle chinois polyvalent, bon rapport qualité/prix.",
-    contextWindow: 200000,
+    contextWindow: 204800,
     inputPricePerMTokUsd: 0.3,
     outputPricePerMTokUsd: 1.2,
     marginPercent: 25,
@@ -124,9 +136,9 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   },
   {
     provider: "zai",
-    displayName: "GLM-4.6 (Z.ai)",
+    displayName: "GLM-4.6",
     description: "Modèle Z.ai (Zhipu), fort en code et en usage agentique.",
-    contextWindow: 128000,
+    contextWindow: 200000,
     inputPricePerMTokUsd: 0.5,
     outputPricePerMTokUsd: 2,
     marginPercent: 25,
@@ -144,8 +156,6 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     enabled: true,
     tags: ["multimodal", "raisonnement"],
   },
-
-  // --- Modèles de génération d'image ---
   {
     provider: "openai",
     displayName: "GPT Image 1",
@@ -185,27 +195,9 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     modality: "image",
     pricePerImageUsd: 0.02,
   },
-
-
-
-{
-    provider: "xai",
-    displayName: "Grok Image",
-    description: "Modèle de génération d'image de xAI, style créatif et réactif.",
-    contextWindow: 0,
-    inputPricePerMTokUsd: 0,
-    outputPricePerMTokUsd: 0,
-    marginPercent: 25,
-    enabled: true,
-    tags: ["image", "génération", "créatif"],
-    modality: "image",
-    pricePerImageUsd: 0.02,
-  },
-
-  // --- Modèle de génération vidéo ---
   {
     provider: "google",
-    displayName: "Veo 3",
+    displayName: "Veo 3.1",
     description: "Modèle de génération vidéo de Google, à partir d'un simple prompt texte. Génération asynchrone (30s à quelques minutes).",
     contextWindow: 0,
     inputPricePerMTokUsd: 0,
