@@ -4,7 +4,7 @@ import type { ProviderId } from "@/types";
 const PROVIDER_LABELS: Record<ProviderId, string> = {
   openai: "OpenAI", anthropic: "Anthropic", google: "Google", xai: "xAI",
   deepseek: "DeepSeek", mistral: "Mistral AI", moonshot: "Moonshot AI (Kimi)",
-  minimax: "MiniMax", zai: "Z.ai", stepfun: "StepFun",
+  minimax: "MiniMax", zai: "Z.ai", stepfun: "StepFun", meta: "Meta AI (Llama)",
 };
 
 // Accent coloré discret par fournisseur, utilisé sur la barre supérieure de chaque carte
@@ -19,6 +19,7 @@ const PROVIDER_ACCENT: Record<ProviderId, string> = {
   minimax: "from-pink-400/70 to-pink-400/0",
   zai: "from-cyan-400/70 to-cyan-400/0",
   stepfun: "from-yellow-400/70 to-yellow-400/0",
+  meta: "from-blue-500/70 to-blue-500/0",
 };
 
 const FEATURED_IDS = ["GPT-5", "Claude Sonnet 5", "Gemini 2.5 Pro", "DeepSeek V3"];
@@ -54,6 +55,7 @@ export function ModelsShowcase() {
                 isPopular ? "border-gold/40" : "border-white/10 hover:border-white/20"
               }`}
             >
+              {/* Barre d'accent colorée par fournisseur, en haut de la carte */}
               <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${PROVIDER_ACCENT[model.provider]}`} />
 
               {isPopular && (
@@ -94,10 +96,11 @@ export function ModelsShowcase() {
         })}
       </div>
 
-<div className="mt-8 text-center">
-        
-          <a href="/register"
-          className="inline-flex items-center gap-1.5 text-sm text-gold hover:gap-2.5 transition-all">
+      <div className="mt-8 text-center">
+        <a
+          href="/register"
+          className="inline-flex items-center gap-1.5 text-sm text-gold hover:gap-2.5 transition-all"
+        >
           Voir les {totalModels - 4}+ autres modèles <span aria-hidden>→</span>
         </a>
       </div>
