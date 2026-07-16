@@ -1,16 +1,20 @@
 /**
  * Webhook Verzapay — reçoit les notifications de paiement.
  *
- * SÉCURITÉ (lire attentivement) : la documentation Verzapay ne décrit aucun mécanisme
- * de signature cryptographique, et nos tests réels confirment qu'aucun header de
- * signature n'est envoyé. On applique donc un filtre partiel par companyId (voir
- * lib/verzapay/client.ts) plutôt qu'une vraie vérification d'authenticité.
- * CECI EST UNE LIMITATION CONNUE tant que Verzapay n'implémente pas de signature —
- * n'importe qui connaissant cette URL et ton companyId pourrait forger un faux
- * événement payment.completed. À durcir dès que Verzapay propose un vrai mécanisme.
+ * IMPORTANT (confirmé empiriquement) : Verzapay NE renvoie PAS le champ "metadata"
+ * dans le payload du webhook, même s'il est envoyé à la création du paiement. On ne
+ * peut donc pas récupérer uid/creditsRequested depuis event.metadata comme prévu
+ * initialement. À la place, on retrouve ces informations en recherchant la
+ * transaction déjà enregistrée dans Firestore au moment de la création du paiement
+ * (voir /api/v1/billing/purchase), via son paymentId — cette transaction contient
+ * déjà uid et amountCredits, donc aucune dépendance à la metadata du webhook.
+ *
+ * SÉCURITÉ : Verzapay ne documente ni n'envoie de signature cryptographique — on
+ * filtre par companyId (voir lib/verzapay/client.ts) en attendant un vrai mécanisme
+ * de signature de leur part. Limitation connue.
  *
  * Format RÉEL confirmé du payload (plat, sans objet "data") :
- * { type, paymentId, amount, currency, status, customerName, customerPhone, companyId, metadata? }
+ * { type, paymentId, amount, currency, status, customerName, customerPhone, companyId }
  *
  * Idempotent : creditUserAccount() ignore les paiements déjà traités (par verzapayPaymentId).
  * DEBUG : logs préfixés "[VZR-WEBHOOK]", visibles dans Vercel → Logs.
@@ -45,9 +49,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "companyId invalide" }, { status: 401 });
   }
 
-  console.log("[VZR-WEBHOOK] Type d'événement:", event.type);
-  console.log("[VZR-WEBHOOK] paymentId:", event.paymentId, "— amount:", event.amount, "— status:", event.status);
-  console.log("[VZR-WEBHOOK] Metadata reçue:", JSON.stringify(event.metadata));
+  console.log("[VZR-WEBHOOK] Type d'événement:", event.type, "— paymentId:", event.paymentId, "— status:", event.status);
 
   try {
     await adminDb.collection("verzapayEvents").add({
@@ -62,20 +64,32 @@ export async function POST(req: NextRequest) {
   }
 
   if (event.type === "payment.completed") {
-    console.log("[VZR-WEBHOOK] payment.completed détecté, traitement du crédit...");
+    console.log("[VZR-WEBHOOK] payment.completed détecté — recherche de la transaction associée par paymentId...");
 
-    const { uid, creditsRequested } = event.metadata ?? {};
-    console.log("[VZR-WEBHOOK] uid extrait de metadata:", uid, "— creditsRequested:", creditsRequested);
+    const txSnap = await adminDb
+      .collection("transactions")
+      .where("verzapayPaymentId", "==", event.paymentId)
+      .limit(1)
+      .get();
 
-    if (!uid) {
-      console.error("[VZR-WEBHOOK] ERREUR: metadata.uid manquant — impossible de créditer. Metadata complète:", JSON.stringify(event.metadata));
-      return NextResponse.json({ error: "metadata.uid manquant" }, { status: 400 });
+    if (txSnap.empty) {
+      console.error(
+        "[VZR-WEBHOOK] ERREUR: aucune transaction trouvée pour paymentId:",
+        event.paymentId,
+        "— impossible de déterminer quel utilisateur créditer."
+      );
+      return NextResponse.json({ error: "Transaction correspondante introuvable" }, { status: 404 });
     }
+
+    const txData = txSnap.docs[0].data();
+    const uid = txData.uid as string;
+    const creditsRequested = txData.amountCredits as number;
+    console.log("[VZR-WEBHOOK] Transaction trouvée. uid:", uid, "— creditsRequested:", creditsRequested);
 
     try {
       await creditUserAccount({
         uid,
-        amountCredits: Number(creditsRequested ?? 0),
+        amountCredits: creditsRequested,
         amountFcfa: event.amount,
         verzapayPaymentId: event.paymentId,
       });
