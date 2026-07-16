@@ -32,27 +32,28 @@ export default function BillingPage() {
     return () => unsub();
   }, [user]);
 
-  async function handlePurchase() {
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await fetch("/api/v1/billing/purchase", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amountFcfa: effectiveAmount, method }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Une erreur est survenue.");
-        return;
-      }
-      window.location.href = data.paymentUrl;
-    } catch {
-      setError("Impossible de contacter le service de paiement.");
-    } finally {
-      setLoading(false);
+async function handlePurchase() {
+  setError(null);
+  setLoading(true);
+  try {
+    const res = await fetch("/api/v1/billing/purchase", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amountFcfa: effectiveAmount, method }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error ?? "Une erreur est survenue.");
+      return;
     }
+    // Ouvre le paiement dans un nouvel onglet
+    window.open(data.paymentUrl, "_blank");
+  } catch {
+    setError("Impossible de contacter le service de paiement.");
+  } finally {
+    setLoading(false);
   }
+}
 
   return (
     <>
