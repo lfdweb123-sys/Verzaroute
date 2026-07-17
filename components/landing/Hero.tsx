@@ -14,12 +14,7 @@ export function Hero() {
       />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(212,175,55,0.14),transparent_60%)]" />
       <div className="relative mx-auto max-w-6xl px-5 sm:px-6 pt-14 sm:pt-20 md:pt-24 pb-14 sm:pb-20">
-        <div className="mb-6 sm:mb-8">
-          <span className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-[11px] sm:text-xs text-gold">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold animate-pulse" />
-            Maintenant disponible en zone CFA
-          </span>
-        </div>
+
 
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
           <div>
