@@ -11,6 +11,7 @@ const LINKS = [
   { href: "#comment-ca-marche", label: "Fonctionnalités" },
   { href: "#tarifs", label: "Tarifs" },
   { href: "#vision", label: "Notre vision" },
+  { href: "/essai-gratuit", label: "Essai gratuit" },
 ];
 
 export function LandingNav() {

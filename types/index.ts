@@ -48,6 +48,12 @@ export interface AiModel {
    * par compatibilité, mais tout nouveau modèle doit définir ce champ explicitement.
    */
   apiModelId?: string;
+  /**
+   * Si true, ce modèle est utilisable gratuitement, sans compte ni crédits, via la
+   * page publique /essai-gratuit. Ne concerne que les modèles de chat (modality
+   * "text" ou absente) — la génération d'image/vidéo reste toujours payante.
+   */
+  isFreeTier?: boolean;
 }
 
 export type ProviderId =

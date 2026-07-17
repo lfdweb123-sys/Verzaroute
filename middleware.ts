@@ -33,6 +33,7 @@ const PUBLIC_PATHS = [
   "/privacy",
   "/terms",
   "/about",
+  "/essai-gratuit",
 ];
 
 export function middleware(req: NextRequest) {
