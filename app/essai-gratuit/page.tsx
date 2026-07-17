@@ -10,42 +10,82 @@ import type { AiModel } from "@/types";
 import {
   Send, Loader2, Bot, User as UserIcon, MessageSquare, ImagePlus, Film,
   ChevronUp, Lock, Sparkles, Copy, Check, Pencil, RotateCcw, ThumbsUp, ThumbsDown,
+  Paperclip, X, FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import ReactMarkdown from "react-markdown";
 
 type Mode = "chat" | "image" | "video";
 
+type ContentBlock =
+  | { type: "text"; text: string }
+  | { type: "image"; base64: string; mimeType: string }
+  | { type: "document"; base64: string; mimeType: string; filename?: string };
+
 interface ChatMessage {
   role: "user" | "assistant";
-  content: string;
+  content: string | ContentBlock[];
+}
+
+interface PendingAttachment {
+  id: string;
+  file: File;
+  previewUrl?: string;
+  base64: string;
+  mimeType: string;
+}
+
+const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024;
+const MAX_ATTACHMENTS = 4;
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.split(",")[1] ?? "");
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function getMessageText(content: ChatMessage["content"]): string {
+  if (typeof content === "string") return content;
+  return content.filter((b): b is Extract<ContentBlock, { type: "text" }> => b.type === "text").map((b) => b.text).join("\n\n");
 }
 
 /**
- * Rendu Markdown volontairement compact (marges réduites par rapport à la version
- * du dashboard) : sur cette page publique, les réponses doivent rester lisibles
- * sans occuper un espace vertical excessif.
+ * Rendu Markdown compact : marges et interlignes resserrés, taille de texte
+ * légèrement réduite, pour que les réponses restent denses et lisibles sans
+ * occuper un espace vertical excessif sur cette page publique. Les liens
+ * s'ouvrent systématiquement dans un nouvel onglet (target="_blank").
  */
 function MarkdownText({ text }: { text: string }) {
   return (
     <ReactMarkdown
       components={{
-        h1: ({ children }) => <h1 className="text-sm font-bold mt-1.5 mb-1 text-white">{children}</h1>,
-        h2: ({ children }) => <h2 className="text-sm font-bold mt-1.5 mb-1 text-white">{children}</h2>,
-        h3: ({ children }) => <h3 className="text-sm font-bold mt-1.5 mb-1 text-white">{children}</h3>,
-        p: ({ children }) => <p className="mb-1.5 last:mb-0 leading-snug">{children}</p>,
+        h1: ({ children }) => <h1 className="text-[13px] font-bold mt-1 mb-0.5 text-white">{children}</h1>,
+        h2: ({ children }) => <h2 className="text-[13px] font-bold mt-1 mb-0.5 text-white">{children}</h2>,
+        h3: ({ children }) => <h3 className="text-[13px] font-bold mt-1 mb-0.5 text-white">{children}</h3>,
+        p: ({ children }) => <p className="mb-1 last:mb-0 leading-tight">{children}</p>,
         strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
         em: ({ children }) => <em className="italic">{children}</em>,
-        ul: ({ children }) => <ul className="list-disc list-inside mb-1.5 space-y-0 pl-1 leading-snug">{children}</ul>,
-        ol: ({ children }) => <ol className="list-decimal list-inside mb-1.5 space-y-0 pl-1 leading-snug">{children}</ol>,
-        li: ({ children }) => <li className="leading-snug">{children}</li>,
+        ul: ({ children }) => <ul className="list-disc list-inside mb-1 space-y-0 pl-1 leading-tight">{children}</ul>,
+        ol: ({ children }) => <ol className="list-decimal list-inside mb-1 space-y-0 pl-1 leading-tight">{children}</ol>,
+        li: ({ children }) => <li className="leading-tight">{children}</li>,
         code: ({ children }) => (
-          <code className="rounded bg-black/40 px-1.5 py-0.5 text-[12px] font-mono text-gold/90">{children}</code>
+          <code className="rounded bg-black/40 px-1.5 py-0.5 text-[11px] font-mono text-gold/90">{children}</code>
         ),
         pre: ({ children }) => (
-          <pre className="rounded-lg bg-black/40 p-2.5 my-1.5 overflow-x-auto text-[12px] font-mono">{children}</pre>
+          <pre className="rounded-lg bg-black/40 p-2 my-1 overflow-x-auto text-[11px] font-mono">{children}</pre>
         ),
-        hr: () => <hr className="my-2 border-white/10" />,
+        a: ({ children, href }) => (
+          <a href={href} target="_blank" rel="noopener noreferrer" className="text-gold underline hover:text-gold-light">
+            {children}
+          </a>
+        ),
+        hr: () => <hr className="my-1.5 border-white/10" />,
       }}
     >
       {text}
@@ -106,11 +146,11 @@ function PublicHeader({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => voi
 }
 
 /**
- * Mode Discuter. Architecture de hauteur IMPORTANTE : ce composant reçoit une
- * hauteur fixe de son parent (voir EssaiGratuitPage : h-screen + overflow-hidden
- * en cascade jusqu'ici). Seule la zone de messages défile (flex-1 min-h-0
- * overflow-y-auto) — la zone de saisie est en dehors de ce flux et garde
- * toujours la même position, jamais poussée par la longueur des réponses.
+ * Mode Discuter. Architecture de hauteur : h-full transmis par le parent
+ * (h-screen + overflow-hidden en cascade), seule la zone de messages défile
+ * (flex-1 min-h-0 overflow-y-auto). Le champ de saisie est fixe en bas de
+ * l'écran — le menu déroulant des modèles doit donc TOUJOURS s'ouvrir vers le
+ * haut (bottom-full), sinon il n'a nulle part où s'afficher en dessous.
  */
 function ChatMode() {
   const { user } = useAuth();
@@ -119,6 +159,7 @@ function ChatMode() {
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+  const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -127,6 +168,7 @@ function ChatMode() {
   const [feedbackSentFor, setFeedbackSentFor] = useState<Record<number, "like" | "dislike">>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const q = query(collection(db, "models"), orderBy("displayName"));
@@ -160,6 +202,44 @@ function ChatMode() {
   const requiresAccount = currentModel && !currentModel.isFreeTier && !user;
   const hasStarted = messages.length > 0;
 
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    setError(null);
+
+    if (attachments.length + files.length > MAX_ATTACHMENTS) {
+      setError(`Maximum ${MAX_ATTACHMENTS} fichiers par message.`);
+      return;
+    }
+
+    for (const file of files) {
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        setError(`"${file.name}" dépasse la taille maximale de 8 Mo.`);
+        continue;
+      }
+      try {
+        const base64 = await fileToBase64(file);
+        const isImage = file.type.startsWith("image/");
+        setAttachments((prev) => [
+          ...prev,
+          {
+            id: `${file.name}-${Date.now()}-${Math.random()}`,
+            file,
+            base64,
+            mimeType: file.type || "application/octet-stream",
+            previewUrl: isImage ? URL.createObjectURL(file) : undefined,
+          },
+        ]);
+      } catch {
+        setError(`Impossible de lire le fichier "${file.name}".`);
+      }
+    }
+  }
+
+  function removeAttachment(id: string) {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
+  }
+
   async function sendToModel(historyMessages: ChatMessage[]) {
     setLoading(true);
     setError(null);
@@ -186,14 +266,29 @@ function ChatMode() {
   }
 
   async function handleSend() {
-    if (!input.trim() || !selectedModel || loading) return;
+    if ((!input.trim() && attachments.length === 0) || !selectedModel || loading) return;
     if (requiresAccount) {
       setError("Ce modèle nécessite un compte. Utilise Mistral Large gratuitement, ou crée un compte.");
       return;
     }
-    const newMessages = [...messages, { role: "user" as const, content: input.trim() }];
+
+    const blocks: ContentBlock[] = [];
+    if (input.trim()) blocks.push({ type: "text", text: input.trim() });
+    for (const att of attachments) {
+      if (att.mimeType.startsWith("image/")) {
+        blocks.push({ type: "image", base64: att.base64, mimeType: att.mimeType });
+      } else {
+        blocks.push({ type: "document", base64: att.base64, mimeType: att.mimeType, filename: att.file.name });
+      }
+    }
+
+    const newMessages: ChatMessage[] = [
+      ...messages,
+      { role: "user", content: attachments.length > 0 ? blocks : input.trim() },
+    ];
     setMessages(newMessages);
     setInput("");
+    setAttachments([]);
     await sendToModel(newMessages);
   }
 
@@ -204,7 +299,9 @@ function ChatMode() {
     }
   }
 
-  async function handleCopy(index: number, text: string) {
+  async function handleCopy(index: number, content: ChatMessage["content"]) {
+    const text = getMessageText(content);
+    if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
       setCopiedIndex(index);
@@ -216,7 +313,7 @@ function ChatMode() {
 
   function startEdit(index: number) {
     setEditingIndex(index);
-    setEditingText(messages[index].content);
+    setEditingText(getMessageText(messages[index].content));
   }
 
   function cancelEdit() {
@@ -226,7 +323,7 @@ function ChatMode() {
 
   async function saveEdit(index: number) {
     if (!editingText.trim()) return;
-    const newMessages = [...messages.slice(0, index), { role: "user" as const, content: editingText.trim() }];
+    const newMessages: ChatMessage[] = [...messages.slice(0, index), { role: "user", content: editingText.trim() }];
     setMessages(newMessages);
     setEditingIndex(null);
     setEditingText("");
@@ -253,8 +350,8 @@ function ChatMode() {
           type,
           comment: "",
           model: selectedModel,
-          userMessage: messages[index - 1]?.content ?? "",
-          assistantMessage: messages[index].content,
+          userMessage: messages[index - 1] ? getMessageText(messages[index - 1].content) : "",
+          assistantMessage: getMessageText(messages[index].content),
         }),
       });
       setFeedbackSentFor((prev) => ({ ...prev, [index]: type }));
@@ -263,11 +360,34 @@ function ChatMode() {
     }
   }
 
+  function renderMessageContent(content: ChatMessage["content"], role: "user" | "assistant") {
+    if (typeof content === "string") {
+      return role === "assistant" ? <MarkdownText text={content} /> : content;
+    }
+    return content.map((block, i) => {
+      if (block.type === "text") {
+        return <span key={i}>{role === "assistant" ? <MarkdownText text={block.text} /> : block.text}</span>;
+      }
+      if (block.type === "image") {
+        return (
+          <img
+            key={i}
+            src={`data:${block.mimeType};base64,${block.base64}`}
+            alt="Pièce jointe"
+            className="mt-1.5 max-w-full h-auto rounded-lg border border-white/10 block"
+          />
+        );
+      }
+      return (
+        <span key={i} className="mt-1.5 flex items-center gap-1.5 text-xs opacity-70">
+          <FileText size={13} className="shrink-0" /> {block.filename ?? "Document joint"}
+        </span>
+      );
+    });
+  }
+
   return (
     <div className="flex flex-col h-full">
-      {/* Zone de messages : SEULE partie qui défile. flex-1 + min-h-0 est ce qui
-          empêche cette zone de pousser le reste de la mise en page — sans min-h-0,
-          un flex-item refuse de rétrécir sous son contenu et casse tout le scroll interne. */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         {!hasStarted ? (
           <div className="h-full flex flex-col items-center justify-center px-3 sm:px-4 text-center">
@@ -280,7 +400,7 @@ function ChatMode() {
             </p>
           </div>
         ) : (
-          <div ref={scrollRef} className="h-full overflow-y-auto p-3 md:p-6 space-y-2.5 max-w-2xl mx-auto w-full">
+          <div ref={scrollRef} className="h-full overflow-y-auto p-3 md:p-6 space-y-2 max-w-2xl mx-auto w-full">
             {messages.map((msg, i) => (
               <div key={i} className={cn("group flex flex-col gap-1", msg.role === "user" ? "items-end" : "items-start")}>
                 <div className={cn("flex gap-2 w-full", msg.role === "user" ? "justify-end" : "justify-start")}>
@@ -315,11 +435,11 @@ function ChatMode() {
                   ) : (
                     <div
                       className={cn(
-                        "max-w-[80%] rounded-2xl px-3.5 py-2 text-sm leading-snug whitespace-pre-wrap break-words",
+                        "max-w-[80%] rounded-2xl px-3.5 py-2 text-sm leading-tight whitespace-pre-wrap break-words",
                         msg.role === "user" ? "bg-gold-gradient text-obsidian font-medium" : "bg-obsidian-card border border-white/10 text-white/85"
                       )}
                     >
-                      {msg.role === "assistant" ? <MarkdownText text={msg.content} /> : msg.content}
+                      {renderMessageContent(msg.content, msg.role)}
                     </div>
                   )}
 
@@ -401,9 +521,34 @@ function ChatMode() {
         </div>
       )}
 
-      {/* Zone de saisie : shrink-0 explicite, en dehors du flux défilant — ne bouge
-          jamais, quelle que soit la longueur des réponses affichées au-dessus. */}
       <div className="shrink-0 w-full max-w-2xl mx-auto px-3 sm:px-4 pb-4 pt-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*,.pdf,.doc,.docx,.txt,.csv"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+
+        {attachments.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-2 max-h-24 overflow-y-auto">
+            {attachments.map((att) => (
+              <div key={att.id} className="relative flex items-center gap-1.5 rounded-lg border border-white/15 bg-obsidian-card px-2 py-1.5">
+                {att.previewUrl ? (
+                  <img src={att.previewUrl} alt={att.file.name} className="h-8 w-8 rounded object-cover" />
+                ) : (
+                  <FileText size={14} className="text-gold shrink-0" />
+                )}
+                <span className="text-[11px] text-white/70 max-w-[100px] truncate">{att.file.name}</span>
+                <button onClick={() => removeAttachment(att.id)} className="text-white/40 hover:text-red-400 shrink-0 p-0.5" aria-label="Retirer">
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="rounded-2xl border border-white/10 bg-obsidian-card overflow-visible">
           <div className="flex items-center justify-between px-4 pt-3 pb-1">
             <div className="relative" ref={modelPickerRef}>
@@ -416,8 +561,10 @@ function ChatMode() {
                 <ChevronUp size={12} className={cn("transition-transform", modelPickerOpen && "rotate-180")} />
               </button>
 
+              {/* Le champ est fixe en bas de l'écran : le menu s'ouvre TOUJOURS vers le
+                  haut (bottom-full), jamais vers le bas où il n'y a pas de place. */}
               {modelPickerOpen && (
-                <div className="absolute left-0 top-full mt-2 w-64 max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-obsidian shadow-xl z-50">
+                <div className="absolute left-0 bottom-full mb-2 w-64 max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-obsidian shadow-xl z-50">
                   {models.map((m) => {
                     const locked = !m.isFreeTier && !user;
                     return (
@@ -466,10 +613,20 @@ function ChatMode() {
             />
           </div>
 
-          <div className="flex items-center justify-end px-3 pb-3 pt-2">
+          <div className="flex items-center justify-between px-3 pb-3 pt-2">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={attachments.length >= MAX_ATTACHMENTS || !!requiresAccount}
+              className="rounded-lg p-2 text-white/50 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-40"
+              aria-label="Joindre un fichier"
+              title="Joindre une image ou un document"
+            >
+              <Paperclip size={16} />
+            </button>
+
             <button
               onClick={handleSend}
-              disabled={loading || !input.trim() || !selectedModel || !!requiresAccount}
+              disabled={loading || (!input.trim() && attachments.length === 0) || !selectedModel || !!requiresAccount}
               className="shrink-0 rounded-xl bg-gold-gradient p-2.5 text-obsidian hover:scale-[1.05] transition-transform disabled:opacity-40 disabled:hover:scale-100"
               aria-label="Envoyer"
             >
@@ -531,9 +688,6 @@ export default function EssaiGratuitPage() {
   const [mode, setMode] = useState<Mode>("chat");
 
   return (
-    // h-screen (PAS min-h-screen) + overflow-hidden : contraint la page entière à
-    // la hauteur exacte du viewport, sans quoi le contenu peut grandir librement
-    // et pousser toute la mise en page (y compris le champ de saisie) vers le bas.
     <main className="h-screen bg-obsidian flex flex-col overflow-hidden">
       <PublicHeader mode={mode} setMode={setMode} />
       <div className="flex-1 min-h-0">

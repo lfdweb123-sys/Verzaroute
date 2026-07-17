@@ -28,8 +28,9 @@ function getClientIp(req: NextRequest): string {
   return forwarded ? forwarded.split(",")[0].trim() : "unknown";
 }
 
+/** Vérifie et incrémente le compteur de requêtes de cette IP pour la journée en cours. */
 async function checkAndIncrementRateLimit(ip: string): Promise<boolean> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10); // ex: "2026-07-17"
   const ref = adminDb.collection("publicChatRateLimits").doc(`${ip}_${today}`);
 
   return adminDb.runTransaction(async (tx) => {
@@ -49,10 +50,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Les champs 'model' et 'messages' sont requis" }, { status: 400 });
   }
 
+  // Limite de taille raisonnable pour l'essai gratuit — relevée pour permettre les
+  // pièces jointes (image/document en base64), qui dépassent très vite quelques
+  // dizaines de Ko même pour un seul fichier compressé.
   const payloadSize = JSON.stringify(messages).length;
-  if (payloadSize > 20000) {
+  if (payloadSize > 6_000_000) {
     return NextResponse.json(
-      { error: "Message trop long pour l'essai gratuit. Crée un compte pour un usage complet." },
+      { error: "Message ou pièce jointe trop volumineux pour l'essai gratuit. Crée un compte pour un usage complet." },
       { status: 413 }
     );
   }

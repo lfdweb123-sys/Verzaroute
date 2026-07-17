@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils/cn";
 import Link from "next/link";
 import type { UserProfile } from "@/types";
 
-const PRESET_AMOUNTS = [1000, 2500, 5000, 10000, 25000, 50000];
+const PRESET_AMOUNTS = [3000, 5000, 10000, 20000, 25000, 50000];
 
 export default function BillingPage() {
   const { user } = useAuth();
@@ -107,7 +107,7 @@ async function handlePurchase() {
           </div>
           <input
             type="number"
-            min={1000}
+            min={3000}
             placeholder="Ou saisissez un montant personnalisé"
             value={customAmount}
             onChange={(e) => setCustomAmount(e.target.value)}
