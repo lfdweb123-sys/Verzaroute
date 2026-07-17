@@ -383,7 +383,7 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     marginPercent: 25,
     enabled: true,
     tags: ["économique", "polyvalent", "gratuit"],
-    isFreeTier: true,
+    isFreeTier: false,
   },
   {
     provider: "zai",
