@@ -1,3 +1,6 @@
+/**
+ * Création d'un job de génération vidéo depuis le dashboard (session cookie).
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
@@ -61,4 +64,17 @@ export async function GET() {
     .get();
 
   return NextResponse.json({ jobs: snap.docs.map((d) => d.data()) });
+}
+
+/** Supprime TOUS les jobs vidéo de l'utilisateur. */
+export async function DELETE() {
+  const uid = await getCurrentUid();
+  if (!uid) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+
+  const snap = await adminDb.collection("videoJobs").where("uid", "==", uid).get();
+  const batch = adminDb.batch();
+  snap.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
+
+  return NextResponse.json({ success: true, deleted: snap.size });
 }

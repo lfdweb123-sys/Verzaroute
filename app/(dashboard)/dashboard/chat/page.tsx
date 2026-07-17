@@ -7,7 +7,10 @@ import { db } from "@/lib/firebase/client";
 import { DashboardTopBar } from "@/components/dashboard/TopBar";
 import { HistorySidebar, type HistoryItem } from "@/components/dashboard/HistorySidebar";
 import type { AiModel } from "@/types";
-import { Send, Loader2, Bot, User as UserIcon, Paperclip, X, FileText, Globe, Image as ImageIcon, ChevronUp, Copy, Check } from "lucide-react";
+import {
+  Send, Loader2, Bot, User as UserIcon, Paperclip, X, FileText, Globe, Image as ImageIcon,
+  ChevronUp, Copy, Check, Pencil, RotateCcw, Volume2, VolumeX, ThumbsUp, ThumbsDown, Trash2,
+} from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import ReactMarkdown from "react-markdown";
 
@@ -102,6 +105,16 @@ function ChatContent() {
   const [conversationsLoading, setConversationsLoading] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState("");
+
+  const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
+
+  const [feedbackPopover, setFeedbackPopover] = useState<{ index: number; type: "like" | "dislike" } | null>(null);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [feedbackSentFor, setFeedbackSentFor] = useState<Record<number, "like" | "dislike">>({});
+  const [feedbackSending, setFeedbackSending] = useState(false);
+
   async function loadConversationsList() {
     setConversationsLoading(true);
     try {
@@ -147,7 +160,32 @@ function ChatContent() {
   function handleNewConversation() {
     setMessages([]);
     setActiveConversationId(null);
+    setEditingIndex(null);
     setConversations((prev) => prev.map((c) => ({ ...c, active: false })));
+  }
+
+  async function handleDeleteConversation(id: string) {
+    try {
+      await fetch(`/api/v1/conversations/${id}`, { method: "DELETE" });
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+      if (activeConversationId === id) {
+        setMessages([]);
+        setActiveConversationId(null);
+      }
+    } catch {
+      // silencieux
+    }
+  }
+
+  async function handleDeleteAllConversations() {
+    try {
+      await fetch("/api/v1/conversations", { method: "DELETE" });
+      setConversations([]);
+      setMessages([]);
+      setActiveConversationId(null);
+    } catch {
+      // silencieux
+    }
   }
 
   async function persistConversation(allMessages: ChatMessage[]) {
@@ -198,6 +236,12 @@ function ChatContent() {
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+    };
   }, []);
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -258,6 +302,38 @@ function ChatContent() {
     }
   }
 
+  async function sendToModel(historyMessages: ChatMessage[]) {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/v1/dashboard-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: selectedModel,
+          messages: historyMessages.map((m) => ({ role: m.role, content: m.content })),
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error ?? "Une erreur est survenue.");
+        return;
+      }
+
+      const finalMessages: ChatMessage[] = [
+        ...historyMessages,
+        { role: "assistant", content: data.content, creditsCharged: data.creditsCharged },
+      ];
+      setMessages(finalMessages);
+      persistConversation(finalMessages);
+    } catch {
+      setError("Impossible de contacter le modèle. Vérifie ta connexion.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleSend() {
     if ((!input.trim() && attachments.length === 0) || !selectedModel || loading) return;
 
@@ -279,36 +355,95 @@ function ChatContent() {
     setMessages(newMessages);
     setInput("");
     setAttachments([]);
-    setError(null);
-    setLoading(true);
     if (textareaRef.current) textareaRef.current.style.height = "24px";
 
+    await sendToModel(newMessages);
+  }
+
+  function startEdit(index: number) {
+    const msg = messages[index];
+    setEditingIndex(index);
+    setEditingText(getMessageText(msg.content));
+  }
+
+  function cancelEdit() {
+    setEditingIndex(null);
+    setEditingText("");
+  }
+
+  async function saveEdit(index: number) {
+    if (!editingText.trim()) return;
+    const truncated = messages.slice(0, index);
+    const editedMessage: ChatMessage = { role: "user", content: editingText.trim() };
+    const newMessages = [...truncated, editedMessage];
+    setMessages(newMessages);
+    setEditingIndex(null);
+    setEditingText("");
+    await sendToModel(newMessages);
+  }
+
+  async function handleRetry(index: number) {
+    if (loading) return;
+    const newMessages = messages.slice(0, index + 1);
+    setMessages(newMessages);
+    await sendToModel(newMessages);
+  }
+
+  function handleSpeak(index: number, content: ChatMessage["content"]) {
+    if (typeof window === "undefined" || !window.speechSynthesis) {
+      setError("La lecture vocale n'est pas prise en charge par ce navigateur.");
+      return;
+    }
+    if (speakingIndex === index) {
+      window.speechSynthesis.cancel();
+      setSpeakingIndex(null);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const text = getMessageText(content);
+    if (!text) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "fr-FR";
+    utterance.onend = () => setSpeakingIndex(null);
+    utterance.onerror = () => setSpeakingIndex(null);
+    setSpeakingIndex(index);
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function openFeedback(index: number, type: "like" | "dislike") {
+    setFeedbackPopover({ index, type });
+    setFeedbackComment("");
+  }
+
+  function closeFeedback() {
+    setFeedbackPopover(null);
+    setFeedbackComment("");
+  }
+
+  async function submitFeedback() {
+    if (!feedbackPopover) return;
+    const { index, type } = feedbackPopover;
+    const assistantMsg = messages[index];
+    const userMsg = messages[index - 1];
+    setFeedbackSending(true);
     try {
-      const res = await fetch("/api/v1/dashboard-chat", {
+      await fetch("/api/v1/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          type,
+          comment: feedbackComment.trim(),
           model: selectedModel,
-          messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+          userMessage: userMsg ? getMessageText(userMsg.content) : "",
+          assistantMessage: getMessageText(assistantMsg.content),
         }),
       });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error ?? "Une erreur est survenue.");
-        return;
-      }
-
-      const finalMessages: ChatMessage[] = [
-        ...newMessages,
-        { role: "assistant", content: data.content, creditsCharged: data.creditsCharged },
-      ];
-      setMessages(finalMessages);
-      persistConversation(finalMessages);
+      setFeedbackSentFor((prev) => ({ ...prev, [index]: type }));
+      closeFeedback();
     } catch {
-      setError("Impossible de contacter le modèle. Vérifie ta connexion.");
+      setError("Impossible d'envoyer le retour. Réessaie plus tard.");
     } finally {
-      setLoading(false);
+      setFeedbackSending(false);
     }
   }
 
@@ -358,7 +493,7 @@ function ChatContent() {
         <DashboardTopBar title="Discuter avec un modèle" />
       </div>
 
-      <div className="flex h-[calc(100vh-4rem)]">
+      <div className="flex h-[100dvh] md:h-[calc(100vh-8rem)]">
         <HistorySidebar
           open={historyOpen}
           onToggle={toggleHistory}
@@ -366,16 +501,17 @@ function ChatContent() {
           loading={conversationsLoading}
           onSelect={handleSelectConversation}
           onNew={handleNewConversation}
+          onDelete={handleDeleteConversation}
+          onDeleteAll={handleDeleteAllConversations}
           newLabel="Nouvelle conversation"
           emptyLabel="Aucune conversation pour le moment."
+          deleteAllLabel="Supprimer toutes les discussions"
         />
 
         <div
           className={cn(
-            "flex flex-col w-full transition-all duration-500 ease-in-out",
-            hasStartedConversation
-              ? "h-[100dvh] md:h-full"
-              : "min-h-[100dvh] md:min-h-0 md:h-full justify-center px-3 sm:px-4"
+            "flex flex-col w-full transition-all duration-500 ease-in-out min-h-0",
+            hasStartedConversation ? "h-full" : "justify-center px-3 sm:px-4"
           )}
         >
         {hasStartedConversation && (
@@ -392,17 +528,46 @@ function ChatContent() {
                       <Bot size={14} className="text-gold sm:w-4 sm:h-4" />
                     </div>
                   )}
-                  <div
-                    className={cn(
-                      "max-w-[85%] sm:max-w-[80%] rounded-2xl px-2.5 sm:px-3.5 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words",
-                      msg.role === "user" ? "bg-gold-gradient text-obsidian font-medium" : "bg-obsidian-card border border-white/10 text-white/85"
-                    )}
-                  >
-                    {renderMessageContent(msg.content, msg.role)}
-                    {msg.creditsCharged !== undefined && (
-                      <p className="mt-1 text-[9px] sm:text-[10px] opacity-50">-{msg.creditsCharged} crédits</p>
-                    )}
-                  </div>
+
+                  {msg.role === "user" && editingIndex === i ? (
+                    <div className="max-w-[85%] sm:max-w-[80%] w-full">
+                      <textarea
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        rows={2}
+                        className="w-full resize-none rounded-2xl px-3 sm:px-3.5 py-2 text-xs sm:text-sm bg-obsidian border border-gold/40 text-white outline-none focus:border-gold"
+                        autoFocus
+                      />
+                      <div className="flex justify-end gap-2 mt-1.5">
+                        <button
+                          onClick={cancelEdit}
+                          className="rounded-md px-2.5 py-1 text-[11px] text-white/50 hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          onClick={() => saveEdit(i)}
+                          disabled={!editingText.trim() || loading}
+                          className="rounded-md bg-gold-gradient px-3 py-1 text-[11px] font-semibold text-obsidian disabled:opacity-40"
+                        >
+                          Enregistrer et renvoyer
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className={cn(
+                        "max-w-[85%] sm:max-w-[80%] rounded-2xl px-2.5 sm:px-3.5 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words",
+                        msg.role === "user" ? "bg-gold-gradient text-obsidian font-medium" : "bg-obsidian-card border border-white/10 text-white/85"
+                      )}
+                    >
+                      {renderMessageContent(msg.content, msg.role)}
+                      {msg.creditsCharged !== undefined && (
+                        <p className="mt-1 text-[9px] sm:text-[10px] opacity-50">-{msg.creditsCharged} crédits</p>
+                      )}
+                    </div>
+                  )}
+
                   {msg.role === "user" && (
                     <div className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 rounded-full bg-white/10 flex items-center justify-center">
                       <UserIcon size={14} className="text-white/70 sm:w-4 sm:h-4" />
@@ -410,27 +575,113 @@ function ChatContent() {
                   )}
                 </div>
 
-                <button
-                  onClick={() => handleCopy(i, msg.content)}
-                  className={cn(
-                    "flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] text-white/40 hover:text-white/80 hover:bg-white/5 transition-all opacity-0 group-hover:opacity-100",
-                    msg.role === "user" ? "mr-9 sm:mr-11" : "ml-9 sm:ml-11"
-                  )}
-                  aria-label="Copier le message"
-                  title="Copier le message"
-                >
-                  {copiedIndex === i ? (
-                    <>
-                      <Check size={12} className="text-gold" />
-                      <span className="text-gold">Copié</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={12} />
-                      <span>Copier</span>
-                    </>
-                  )}
-                </button>
+                {!(msg.role === "user" && editingIndex === i) && (
+                  <div
+                    className={cn(
+                      "flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all",
+                      msg.role === "user" ? "mr-9 sm:mr-11" : "ml-9 sm:ml-11"
+                    )}
+                  >
+                    <button
+                      onClick={() => handleCopy(i, msg.content)}
+                      className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] text-white/40 hover:text-white/80 hover:bg-white/5 transition-colors"
+                      title="Copier"
+                    >
+                      {copiedIndex === i ? <Check size={12} className="text-gold" /> : <Copy size={12} />}
+                    </button>
+
+                    {msg.role === "user" && (
+                      <>
+                        <button
+                          onClick={() => startEdit(i)}
+                          className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] text-white/40 hover:text-white/80 hover:bg-white/5 transition-colors"
+                          title="Modifier ce message"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                        <button
+                          onClick={() => handleRetry(i)}
+                          disabled={loading}
+                          className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] text-white/40 hover:text-white/80 hover:bg-white/5 transition-colors disabled:opacity-30"
+                          title="Réessayer l'envoi"
+                        >
+                          <RotateCcw size={12} />
+                        </button>
+                      </>
+                    )}
+
+                    {msg.role === "assistant" && (
+                      <>
+                        <button
+                          onClick={() => handleSpeak(i, msg.content)}
+                          className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] text-white/40 hover:text-white/80 hover:bg-white/5 transition-colors"
+                          title={speakingIndex === i ? "Arrêter la lecture" : "Lire à voix haute"}
+                        >
+                          {speakingIndex === i ? <VolumeX size={12} className="text-gold" /> : <Volume2 size={12} />}
+                        </button>
+                        <button
+                          onClick={() => openFeedback(i, "like")}
+                          disabled={!!feedbackSentFor[i]}
+                          className={cn(
+                            "flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] transition-colors",
+                            feedbackSentFor[i] === "like" ? "text-gold" : "text-white/40 hover:text-white/80 hover:bg-white/5"
+                          )}
+                          title="J'aime cette réponse"
+                        >
+                          <ThumbsUp size={12} />
+                        </button>
+                        <button
+                          onClick={() => openFeedback(i, "dislike")}
+                          disabled={!!feedbackSentFor[i]}
+                          className={cn(
+                            "flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] transition-colors",
+                            feedbackSentFor[i] === "dislike" ? "text-red-400" : "text-white/40 hover:text-white/80 hover:bg-white/5"
+                          )}
+                          title="Je n'aime pas cette réponse"
+                        >
+                          <ThumbsDown size={12} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {feedbackPopover?.index === i && (
+                  <div
+                    className={cn(
+                      "w-full max-w-sm rounded-xl border border-white/10 bg-obsidian-card p-3 mt-1",
+                      msg.role === "user" ? "mr-9 sm:mr-11" : "ml-9 sm:ml-11"
+                    )}
+                  >
+                    <p className="text-[11px] text-white/60 mb-2">
+                      {feedbackPopover.type === "like"
+                        ? "Qu'as-tu aimé dans cette réponse ? (optionnel)"
+                        : "Qu'est-ce qui n'allait pas ? Ton retour est envoyé à notre équipe."}
+                    </p>
+                    <textarea
+                      value={feedbackComment}
+                      onChange={(e) => setFeedbackComment(e.target.value)}
+                      rows={2}
+                      placeholder="Ton commentaire..."
+                      className="w-full resize-none rounded-lg bg-obsidian border border-white/15 px-2.5 py-2 text-xs text-white outline-none focus:border-gold/50"
+                    />
+                    <div className="flex justify-end gap-2 mt-2">
+                      <button
+                        onClick={closeFeedback}
+                        className="rounded-md px-2.5 py-1 text-[11px] text-white/50 hover:text-white hover:bg-white/5 transition-colors"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        onClick={submitFeedback}
+                        disabled={feedbackSending}
+                        className="rounded-md bg-gold-gradient px-3 py-1 text-[11px] font-semibold text-obsidian disabled:opacity-50"
+                      >
+                        {feedbackSending ? "Envoi..." : "Envoyer"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
 
@@ -509,11 +760,23 @@ function ChatContent() {
                 )}
               </div>
 
-              {currentModel && (
-                <span className="text-[10px] sm:text-xs text-white/40 whitespace-nowrap">
-                  ${currentModel.inputPricePerMTokUsd.toFixed(2)} / ${currentModel.outputPricePerMTokUsd.toFixed(2)} / 1M tokens
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {hasStartedConversation && (
+                  <button
+                    onClick={() => activeConversationId && handleDeleteConversation(activeConversationId)}
+                    disabled={!activeConversationId}
+                    className="flex items-center gap-1 text-[10px] sm:text-xs text-white/30 hover:text-red-400 transition-colors disabled:opacity-30"
+                    title="Supprimer cette discussion"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                )}
+                {currentModel && (
+                  <span className="text-[10px] sm:text-xs text-white/40 whitespace-nowrap">
+                    ${currentModel.inputPricePerMTokUsd.toFixed(2)} / ${currentModel.outputPricePerMTokUsd.toFixed(2)} / 1M tokens
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="px-3 sm:px-4 pt-1">

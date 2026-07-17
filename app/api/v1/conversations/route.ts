@@ -53,3 +53,16 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ id: ref.id });
 }
+
+/** Supprime TOUTES les conversations de l'utilisateur (bouton "Tout supprimer" de l'historique). */
+export async function DELETE() {
+  const uid = await getCurrentUid();
+  if (!uid) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+
+  const snap = await adminDb.collection("conversations").where("uid", "==", uid).get();
+  const batch = adminDb.batch();
+  snap.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
+
+  return NextResponse.json({ success: true, deleted: snap.size });
+}

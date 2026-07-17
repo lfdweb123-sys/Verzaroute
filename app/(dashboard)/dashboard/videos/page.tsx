@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { DashboardTopBar } from "@/components/dashboard/TopBar";
+import { HistorySidebar, type HistoryItem } from "@/components/dashboard/HistorySidebar";
 import type { AiModel, VideoJob } from "@/types";
 import { Film, Loader2, Sparkles, Download, AlertCircle, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -22,6 +23,43 @@ export default function VideosPage() {
   const galleryRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
+
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const jobRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  const historyItems: HistoryItem[] = jobs.map((j) => ({
+    id: j.id,
+    title: j.prompt.slice(0, 50) || "Vidéo",
+    subtitle: j.status === "ready" ? "Prête" : j.status === "failed" ? "Échec" : "En cours...",
+  }));
+
+  function toggleHistory() {
+    setHistoryOpen((v) => !v);
+  }
+
+  function handleSelectHistoryJob(id: string) {
+    jobRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  async function handleDeleteHistoryJob(id: string) {
+    if (pollTimers.current[id]) clearTimeout(pollTimers.current[id]);
+    try {
+      await fetch(`/api/v1/dashboard-video/${id}`, { method: "DELETE" });
+      setJobs((prev) => prev.filter((j) => j.id !== id));
+    } catch {
+      // silencieux
+    }
+  }
+
+  async function handleDeleteAllHistory() {
+    Object.values(pollTimers.current).forEach(clearTimeout);
+    try {
+      await fetch("/api/v1/dashboard-video", { method: "DELETE" });
+      setJobs([]);
+    } catch {
+      // silencieux
+    }
+  }
 
   useEffect(() => {
     const q = query(collection(db, "models"), orderBy("displayName"));
@@ -138,12 +176,24 @@ export default function VideosPage() {
         <DashboardTopBar title="Générer une vidéo" />
       </div>
 
-      <div
-        className={cn(
-          "flex flex-col w-full transition-all duration-500 ease-in-out",
-          hasJobs ? "h-[100dvh] md:h-[calc(100vh-4rem)]" : "min-h-[100dvh] justify-center px-3 sm:px-4"
-        )}
-      >
+      <div className="flex h-[100dvh] md:h-[calc(100vh-8rem)]">
+        <HistorySidebar
+          open={historyOpen}
+          onToggle={toggleHistory}
+          items={historyItems}
+          onSelect={handleSelectHistoryJob}
+          onDelete={handleDeleteHistoryJob}
+          onDeleteAll={handleDeleteAllHistory}
+          emptyLabel="Aucune vidéo générée pour le moment."
+          deleteAllLabel="Supprimer tout l'historique"
+        />
+
+        <div
+          className={cn(
+            "flex flex-col w-full transition-all duration-500 ease-in-out min-h-0",
+            hasJobs ? "h-full" : "justify-center px-3 sm:px-4"
+          )}
+        >
         {models.length === 0 ? (
           <div className="max-w-2xl w-full mx-auto rounded-2xl border border-white/10 bg-obsidian-card p-6 text-center">
             <p className="text-white/50 text-sm">
@@ -160,7 +210,11 @@ export default function VideosPage() {
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {jobs.map((job) => (
-                    <div key={job.id} className="rounded-2xl border border-white/10 bg-obsidian-card overflow-hidden">
+                    <div
+                      key={job.id}
+                      ref={(el) => { jobRefs.current[job.id] = el; }}
+                      className="rounded-2xl border border-white/10 bg-obsidian-card overflow-hidden"
+                    >
                       <div className="aspect-video bg-black/40 flex items-center justify-center relative">
                         {job.status === "ready" && job.videoUrl ? (
                           <video src={job.videoUrl} controls className="w-full h-full object-cover" />
@@ -185,7 +239,7 @@ export default function VideosPage() {
                             {job.creditsCharged ? `-${job.creditsCharged} crédits` : "—"}
                           </span>
                           {job.status === "ready" && job.videoUrl && (
-                            <a
+                            
                               href={job.videoUrl}
                               download
                               className="flex items-center gap-1 text-[11px] sm:text-xs text-gold hover:underline"
@@ -231,7 +285,6 @@ export default function VideosPage() {
                   hasJobs && "border-white/15"
                 )}
               >
-                {/* Ligne du haut : sélecteur de modèle + prix */}
                 <div className="flex items-center justify-between px-3 sm:px-4 pt-2.5 sm:pt-3 pb-1">
                   <div className="relative" ref={modelPickerRef}>
                     <button
@@ -271,8 +324,6 @@ export default function VideosPage() {
                   )}
                 </div>
 
-                {/* Textarea auto-agrandissable : hauteur par défaut pour un prompt court,
-                    grandit dynamiquement pour un prompt long, avec un plafond scrollable. */}
                 <div className="px-3 sm:px-4 pt-1">
                   <textarea
                     ref={textareaRef}
@@ -291,7 +342,6 @@ export default function VideosPage() {
                   />
                 </div>
 
-                {/* Ligne du bas : indication clavier + bouton générer */}
                 <div className="flex items-center justify-between px-2.5 sm:px-3 pb-2.5 sm:pb-3 pt-1.5 sm:pt-2">
                   <span className="hidden sm:inline text-[10px] text-white/30 uppercase tracking-wide">
                     Entrée pour générer · Maj + Entrée pour un retour à la ligne
@@ -315,6 +365,7 @@ export default function VideosPage() {
             </div>
           </>
         )}
+        </div>
       </div>
     </>
   );

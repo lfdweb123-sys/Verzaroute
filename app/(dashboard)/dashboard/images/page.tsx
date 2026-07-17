@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { DashboardTopBar } from "@/components/dashboard/TopBar";
+import { HistorySidebar, type HistoryItem } from "@/components/dashboard/HistorySidebar";
 import type { AiModel } from "@/types";
 import { ImagePlus, Loader2, Download, Sparkles, ChevronUp, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -41,6 +42,80 @@ export default function ImagesPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const sizePickerRef = useRef<HTMLDivElement>(null);
+
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyImages, setHistoryImages] = useState<GeneratedImage[]>([]);
+
+  async function loadImageHistory() {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch("/api/v1/dashboard-image/history");
+      const data = await res.json();
+      const records: Array<{
+        id: string;
+        prompt: string;
+        base64: string;
+        mimeType: string;
+        size: SizeOption;
+        creditsCharged: number;
+        model: string;
+      }> = data.images ?? [];
+      setHistoryImages(
+        records.map((r) => ({
+          id: r.id,
+          base64: r.base64,
+          mimeType: r.mimeType,
+          prompt: r.prompt,
+          size: r.size,
+          creditsCharged: r.creditsCharged,
+        }))
+      );
+      setHistoryItems(
+        records.map((r) => ({
+          id: r.id,
+          title: r.prompt.slice(0, 50) || "Image",
+          subtitle: models.find((m) => m.id === r.model)?.displayName,
+        }))
+      );
+    } catch {
+      // silencieux
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  function toggleHistory() {
+    const next = !historyOpen;
+    setHistoryOpen(next);
+    if (next) loadImageHistory();
+  }
+
+  function handleSelectHistoryImage(id: string) {
+    const img = historyImages.find((i) => i.id === id);
+    if (img) setPreviewImage(img);
+  }
+
+  async function handleDeleteHistoryImage(id: string) {
+    try {
+      await fetch(`/api/v1/dashboard-image/history/${id}`, { method: "DELETE" });
+      setHistoryItems((prev) => prev.filter((i) => i.id !== id));
+      setHistoryImages((prev) => prev.filter((i) => i.id !== id));
+    } catch {
+      // silencieux
+    }
+  }
+
+  async function handleDeleteAllHistory() {
+    try {
+      await fetch("/api/v1/dashboard-image/history", { method: "DELETE" });
+      setHistoryItems([]);
+      setHistoryImages([]);
+    } catch {
+      // silencieux
+    }
+  }
 
   useEffect(() => {
     const q = query(collection(db, "models"), orderBy("displayName"));
@@ -101,6 +176,7 @@ export default function ImagesPage() {
       ]);
       setPrompt("");
       if (textareaRef.current) textareaRef.current.style.height = "24px";
+      if (historyOpen) loadImageHistory();
     } catch {
       setError("Impossible de contacter le modèle. Vérifie ta connexion.");
     } finally {
@@ -131,12 +207,25 @@ export default function ImagesPage() {
         <DashboardTopBar title="Générer une image" />
       </div>
 
-      <div
-        className={cn(
-          "flex flex-col w-full transition-all duration-500 ease-in-out",
-          hasGenerated ? "h-[100dvh] md:h-[calc(100vh-4rem)]" : "min-h-[100dvh] justify-center px-3 sm:px-4"
-        )}
-      >
+      <div className="flex h-[100dvh] md:h-[calc(100vh-8rem)]">
+        <HistorySidebar
+          open={historyOpen}
+          onToggle={toggleHistory}
+          items={historyItems}
+          loading={historyLoading}
+          onSelect={handleSelectHistoryImage}
+          onDelete={handleDeleteHistoryImage}
+          onDeleteAll={handleDeleteAllHistory}
+          emptyLabel="Aucune image générée pour le moment."
+          deleteAllLabel="Supprimer tout l'historique"
+        />
+
+        <div
+          className={cn(
+            "flex flex-col w-full transition-all duration-500 ease-in-out min-h-0",
+            hasGenerated ? "h-full" : "justify-center px-3 sm:px-4"
+          )}
+        >
         {models.length === 0 ? (
           <div className="max-w-2xl w-full mx-auto rounded-2xl border border-white/10 bg-obsidian-card p-6 text-center">
             <p className="text-white/50 text-sm">
@@ -239,7 +328,6 @@ export default function ImagesPage() {
                   hasGenerated && "border-white/15"
                 )}
               >
-                {/* Ligne du haut : sélecteur de modèle + prix */}
                 <div className="flex items-center justify-between px-3 sm:px-4 pt-2.5 sm:pt-3 pb-1">
                   <div className="relative" ref={modelPickerRef}>
                     <button
@@ -303,8 +391,6 @@ export default function ImagesPage() {
                   </div>
                 </div>
 
-                {/* Textarea auto-agrandissable : hauteur par défaut pour un prompt court,
-                    grandit dynamiquement pour un prompt long, avec un plafond scrollable. */}
                 <div className="px-3 sm:px-4 pt-1">
                   <textarea
                     ref={textareaRef}
@@ -323,7 +409,6 @@ export default function ImagesPage() {
                   />
                 </div>
 
-                {/* Ligne du bas : indication clavier + bouton générer */}
                 <div className="flex items-center justify-between px-2.5 sm:px-3 pb-2.5 sm:pb-3 pt-1.5 sm:pt-2">
                   <span className="hidden sm:inline text-[10px] text-white/30 uppercase tracking-wide">
                     Entrée pour générer · Maj + Entrée pour un retour à la ligne
@@ -355,6 +440,7 @@ export default function ImagesPage() {
             </div>
           </>
         )}
+        </div>
       </div>
 
       {previewImage && (
