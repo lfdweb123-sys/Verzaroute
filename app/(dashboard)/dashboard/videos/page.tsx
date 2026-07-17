@@ -240,7 +240,7 @@ export default function VideosPage() {
                           </span>
                           {job.status === "ready" && job.videoUrl && (
                             
-                              href={job.videoUrl}
+                            <a  href={job.videoUrl}
                               download
                               className="flex items-center gap-1 text-[11px] sm:text-xs text-gold hover:underline"
                             >
