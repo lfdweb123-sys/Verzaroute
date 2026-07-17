@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, KeyRound, History, Wallet, User, LogOut, Sparkles, MessageSquare, Menu, X, PanelLeftClose, PanelLeftOpen, ImagePlus, Film } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { useSidebarCollapse } from "@/lib/dashboard/sidebar-context";
 import { cn } from "@/lib/utils/cn";
 
 const NAV_ITEMS = [
@@ -32,7 +33,7 @@ export function DashboardSidebar() {
   const pathname = usePathname();
   const { signOut } = useAuth();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isCollapsed, setIsCollapsed } = useSidebarCollapse();
 
   const SidebarContent = ({ isDesktop = false }: { isDesktop?: boolean }) => (
     <>
@@ -105,7 +106,6 @@ export function DashboardSidebar() {
 
   return (
     <>
-      {/* Barre mobile supérieure */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-obsidian-card border-b border-white/10 flex items-center px-4 z-40">
         <Link href="/" className="flex items-center">
           <Image 
@@ -125,7 +125,6 @@ export function DashboardSidebar() {
         </button>
       </div>
 
-      {/* Sidebar Mobile (Drawer) */}
       {isMobileSidebarOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div 
@@ -138,7 +137,6 @@ export function DashboardSidebar() {
         </div>
       )}
 
-      {/* Sidebar Desktop FIXÉE - ne scroll plus avec la page */}
       <aside className={cn(
         "hidden md:flex md:flex-col fixed top-0 left-0 h-screen shrink-0 border-r border-white/10 bg-obsidian-card p-5 transition-all duration-300 z-30",
         isCollapsed ? "w-20" : "w-64"
@@ -155,7 +153,6 @@ export function DashboardSidebar() {
         <SidebarContent isDesktop />
       </aside>
 
-      {/* Menu du bas sur mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-obsidian-card border-t border-white/10 px-2 z-40 pb-2">
         <div className="flex justify-around items-center h-16">
           {BOTTOM_NAV_ITEMS.map(({ href, label, icon: Icon }) => {

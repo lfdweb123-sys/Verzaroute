@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { DashboardTopBar } from "@/components/dashboard/TopBar";
+import { HistorySidebar, type HistoryItem } from "@/components/dashboard/HistorySidebar";
 import type { AiModel } from "@/types";
 import { Send, Loader2, Bot, User as UserIcon, Paperclip, X, FileText, Globe, Image as ImageIcon, ChevronUp, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -29,12 +30,6 @@ interface PendingAttachment {
   mimeType: string;
 }
 
-/**
- * Rendu Markdown minimal pour les réponses assistant, stylé pour s'intégrer dans
- * une bulle de chat sombre (titres, gras, listes, code, liens). Utilise des classes
- * Tailwind directement sur chaque élément plutôt qu'un plugin "prose" externe, pour
- * éviter d'ajouter une dépendance CSS supplémentaire.
- */
 function MarkdownText({ text }: { text: string }) {
   return (
     <ReactMarkdown
@@ -101,6 +96,84 @@ function ChatContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [conversations, setConversations] = useState<HistoryItem[]>([]);
+  const [conversationsLoading, setConversationsLoading] = useState(false);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+
+  async function loadConversationsList() {
+    setConversationsLoading(true);
+    try {
+      const res = await fetch("/api/v1/conversations");
+      const data = await res.json();
+      const items: HistoryItem[] = (data.conversations ?? []).map(
+        (c: { id: string; title: string; model: string }) => ({
+          id: c.id,
+          title: c.title,
+          subtitle: models.find((m) => m.id === c.model)?.displayName ?? c.model,
+          active: c.id === activeConversationId,
+        })
+      );
+      setConversations(items);
+    } catch {
+      // silencieux
+    } finally {
+      setConversationsLoading(false);
+    }
+  }
+
+  function toggleHistory() {
+    const next = !historyOpen;
+    setHistoryOpen(next);
+    if (next) loadConversationsList();
+  }
+
+  async function handleSelectConversation(id: string) {
+    try {
+      const res = await fetch(`/api/v1/conversations/${id}`);
+      const data = await res.json();
+      if (!res.ok) return;
+      const conv = data.conversation;
+      setMessages(conv.messages ?? []);
+      setSelectedModel(conv.model);
+      setActiveConversationId(id);
+      setConversations((prev) => prev.map((c) => ({ ...c, active: c.id === id })));
+    } catch {
+      // silencieux
+    }
+  }
+
+  function handleNewConversation() {
+    setMessages([]);
+    setActiveConversationId(null);
+    setConversations((prev) => prev.map((c) => ({ ...c, active: false })));
+  }
+
+  async function persistConversation(allMessages: ChatMessage[]) {
+    try {
+      let convId = activeConversationId;
+      if (!convId) {
+        const createRes = await fetch("/api/v1/conversations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: selectedModel }),
+        });
+        const createData = await createRes.json();
+        if (!createRes.ok) return;
+        convId = createData.id;
+        setActiveConversationId(convId);
+      }
+      await fetch(`/api/v1/conversations/${convId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: allMessages }),
+      });
+      if (historyOpen) loadConversationsList();
+    } catch {
+      // silencieux
+    }
+  }
 
   useEffect(() => {
     const q = query(collection(db, "models"), orderBy("displayName"));
@@ -226,10 +299,12 @@ function ChatContent() {
         return;
       }
 
-      setMessages((prev) => [
-        ...prev,
+      const finalMessages: ChatMessage[] = [
+        ...newMessages,
         { role: "assistant", content: data.content, creditsCharged: data.creditsCharged },
-      ]);
+      ];
+      setMessages(finalMessages);
+      persistConversation(finalMessages);
     } catch {
       setError("Impossible de contacter le modèle. Vérifie ta connexion.");
     } finally {
@@ -283,14 +358,26 @@ function ChatContent() {
         <DashboardTopBar title="Discuter avec un modèle" />
       </div>
 
-      <div
-        className={cn(
-          "flex flex-col w-full transition-all duration-500 ease-in-out",
-          hasStartedConversation
-            ? "h-[100dvh] md:h-[calc(100vh-4rem)]"
-            : "min-h-[100dvh] justify-center px-3 sm:px-4"
-        )}
-      >
+      <div className="flex h-[calc(100vh-4rem)]">
+        <HistorySidebar
+          open={historyOpen}
+          onToggle={toggleHistory}
+          items={conversations}
+          loading={conversationsLoading}
+          onSelect={handleSelectConversation}
+          onNew={handleNewConversation}
+          newLabel="Nouvelle conversation"
+          emptyLabel="Aucune conversation pour le moment."
+        />
+
+        <div
+          className={cn(
+            "flex flex-col w-full transition-all duration-500 ease-in-out",
+            hasStartedConversation
+              ? "h-[100dvh] md:h-full"
+              : "min-h-[100dvh] md:min-h-0 md:h-full justify-center px-3 sm:px-4"
+          )}
+        >
         {hasStartedConversation && (
           <div
             ref={scrollRef}
@@ -323,7 +410,6 @@ function ChatContent() {
                   )}
                 </div>
 
-                {/* Bouton copier disponible pour les deux rôles (utilisateur et assistant) */}
                 <button
                   onClick={() => handleCopy(i, msg.content)}
                   className={cn(
@@ -390,7 +476,6 @@ function ChatContent() {
               hasStartedConversation && "border-white/15"
             )}
           >
-            {/* Ligne du haut : sélecteur de modèle + prix */}
             <div className="flex items-center justify-between px-3 sm:px-4 pt-2.5 sm:pt-3 pb-1">
               <div className="relative" ref={modelPickerRef}>
                 <button
@@ -402,7 +487,6 @@ function ChatContent() {
                   <ChevronUp size={12} className={cn("transition-transform", modelPickerOpen && "rotate-180")} />
                 </button>
 
-                {/* Dropdown ouvert VERS LE HAUT : bottom-full au lieu de top-full */}
                 {modelPickerOpen && (
                   <div className="absolute left-0 bottom-full mb-2 w-56 max-h-64 overflow-y-auto rounded-xl border border-white/10 bg-obsidian shadow-xl z-50">
                     {models.map((m) => (
@@ -432,7 +516,6 @@ function ChatContent() {
               )}
             </div>
 
-            {/* Textarea */}
             <div className="px-3 sm:px-4 pt-1">
               <textarea
                 ref={textareaRef}
@@ -451,7 +534,6 @@ function ChatContent() {
               />
             </div>
 
-            {/* Ligne du bas : icônes gauche + Alt+Enter + bouton envoyer */}
             <div className="flex items-center justify-between px-2.5 sm:px-3 pb-2.5 sm:pb-3 pt-1.5 sm:pt-2">
               <div className="flex items-center gap-0.5 sm:gap-1">
                 <button
@@ -528,6 +610,7 @@ function ChatContent() {
               Les réponses générées peuvent comporter des erreurs. Pensez à vérifier les informations importantes avant de les utiliser.
             </p>
           )}
+        </div>
         </div>
       </div>
     </>

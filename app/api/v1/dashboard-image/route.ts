@@ -101,6 +101,18 @@ export async function POST(req: NextRequest) {
       latencyMs: Date.now() - startedAt,
     });
 
+    // Persistance pour l'historique de la page /dashboard/images (panneau HistorySidebar).
+    await adminDb.collection("imageGenerations").add({
+      uid,
+      model: modelId,
+      prompt,
+      base64: result.base64,
+      mimeType: result.mimeType,
+      size: size ?? "1024x1024",
+      creditsCharged,
+      createdAt: Date.now(),
+    });
+
     return NextResponse.json({
       base64: result.base64,
       mimeType: result.mimeType,

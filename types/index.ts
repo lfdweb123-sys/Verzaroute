@@ -136,3 +136,27 @@ export interface VideoJob {
   createdAt: number;
   updatedAt: number;
 }
+
+/** Une conversation de chat persistée, pour l'historique sur /dashboard/chat. */
+export interface Conversation {
+  id: string;
+  uid: string;
+  model: string;
+  title: string;
+  messages: Array<{ role: "user" | "assistant"; content: unknown; creditsCharged?: number }>;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Une image générée et persistée, pour l'historique sur /dashboard/images. */
+export interface ImageGenerationRecord {
+  id: string;
+  uid: string;
+  model: string;
+  prompt: string;
+  base64: string;
+  mimeType: string;
+  size: string;
+  creditsCharged: number;
+  createdAt: number;
+}
