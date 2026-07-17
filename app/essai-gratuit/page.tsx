@@ -263,7 +263,12 @@ function ChatMode() {
               </button>
 
               {modelPickerOpen && (
-                <div className="absolute left-0 bottom-full mb-2 w-64 max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-obsidian shadow-xl z-50">
+                <div
+                  className={cn(
+                    "absolute left-0 w-64 max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-obsidian shadow-xl z-50",
+                    hasStarted ? "bottom-full mb-2" : "top-full mt-2"
+                  )}
+                >
                   {models.map((m) => {
                     const locked = !m.isFreeTier && !user;
                     return (

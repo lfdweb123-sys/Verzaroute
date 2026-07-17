@@ -11,7 +11,6 @@ const LINKS = [
   { href: "#comment-ca-marche", label: "Fonctionnalités" },
   { href: "#tarifs", label: "Tarifs" },
   { href: "#vision", label: "Notre vision" },
-  { href: "/essai-gratuit", label: "Essai gratuit" },
 ];
 
 export function LandingNav() {
@@ -30,6 +29,12 @@ export function LandingNav() {
               {l.label}
             </Link>
           ))}
+          <Link
+            href="/essai-gratuit"
+            className="relative rounded-full bg-gold-gradient px-3.5 py-1.5 text-xs font-semibold text-obsidian animate-pulse hover:scale-105 transition-transform"
+          >
+            Essai gratuit
+          </Link>
         </div>
 
         <div className="hidden sm:flex items-center gap-3">
@@ -56,6 +61,13 @@ export function LandingNav() {
               {l.label}
             </Link>
           ))}
+          <Link
+            href="/essai-gratuit"
+            onClick={() => setOpen(false)}
+            className="inline-block rounded-full bg-gold-gradient px-3.5 py-1.5 text-xs font-semibold text-obsidian animate-pulse"
+          >
+            Essai gratuit
+          </Link>
           <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
             <Link href="/login" onClick={() => setOpen(false)} className="text-center text-sm text-white/70 py-2">
               Connexion
