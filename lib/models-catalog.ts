@@ -357,7 +357,8 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     outputPricePerMTokUsd: 6,
     marginPercent: 20,
     enabled: true,
-    tags: ["multilingue", "raisonnement"],
+    tags: ["multilingue", "raisonnement", "gratuit"],
+    isFreeTier: true,
   },
   {
     provider: "moonshot",
@@ -381,7 +382,8 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     outputPricePerMTokUsd: 1.2,
     marginPercent: 25,
     enabled: true,
-    tags: ["économique", "polyvalent"],
+    tags: ["économique", "polyvalent", "gratuit"],
+    isFreeTier: true,
   },
   {
     provider: "zai",
