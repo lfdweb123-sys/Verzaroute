@@ -46,7 +46,6 @@ function MarkdownText({ text }: { text: string }) {
   );
 }
 
-/** Bandeau d'en-tête minimal, cohérent avec le reste du site, sans dépendre du dashboard. */
 function PublicHeader({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void }) {
   const { user } = useAuth();
 
@@ -99,7 +98,6 @@ function PublicHeader({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => voi
   );
 }
 
-/** Mode Discuter : modèles gratuits utilisables par tous, autres modèles réservés aux comptes connectés. */
 function ChatMode() {
   const { user } = useAuth();
   const [models, setModels] = useState<AiModel[]>([]);
@@ -147,7 +145,7 @@ function ChatMode() {
     if (!input.trim() || !selectedModel || loading) return;
 
     if (requiresAccount) {
-      setError("Ce modèle nécessite un compte. Utilise Mistral Large ou MiniMax M2 gratuitement, ou crée un compte.");
+      setError("Ce modèle nécessite un compte. Utilise Mistral Large gratuitement, ou crée un compte.");
       return;
     }
 
@@ -159,8 +157,6 @@ function ChatMode() {
     setLoading(true);
 
     try {
-      // Utilisateur connecté -> endpoint authentifié classique (facture les modèles payants).
-      // Utilisateur anonyme -> endpoint public (modèles gratuits uniquement, sans facturation).
       const endpoint = user ? "/api/v1/dashboard-chat" : "/api/v1/public-chat";
       const res = await fetch(endpoint, {
         method: "POST",
@@ -199,8 +195,8 @@ function ChatMode() {
             Essaie <span className="gold-text">gratuitement</span>, sans compte
           </h1>
           <p className="text-sm text-white/50">
-            Mistral Large et MiniMax M2 sont gratuits pour tout le monde. Crée un compte pour débloquer
-            tous les autres modèles et la génération d&apos;images/vidéos.
+            Mistral Large est gratuit pour tout le monde. Crée un compte pour débloquer tous les autres
+            modèles et la génération d&apos;images/vidéos.
           </p>
         </div>
       )}
@@ -248,7 +244,7 @@ function ChatMode() {
         </div>
       )}
 
-      <div className={cn("w-full", hasStarted ? "border-t border-white/10 p-3 md:p-4 bg-obsidian-card" : "max-w-2xl mx-auto")}>
+      <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pb-6">
         <div className="rounded-2xl border border-white/10 bg-obsidian-card overflow-visible">
           <div className="flex items-center justify-between px-4 pt-3 pb-1">
             <div className="relative" ref={modelPickerRef}>
@@ -345,7 +341,6 @@ function ChatMode() {
   );
 }
 
-/** Modes Image/Vidéo : aucun modèle gratuit n'existe pour ces usages — accès direct réservé aux comptes connectés. */
 function LockedMode({ title, description, icon: Icon }: { title: string; description: string; icon: typeof ImagePlus }) {
   const { user } = useAuth();
 
@@ -377,8 +372,8 @@ function LockedMode({ title, description, icon: Icon }: { title: string; descrip
           <Sparkles size={16} /> Créer un compte gratuitement
         </Link>
         <p className="mt-4 text-[11px] text-white/30">
-          Aucun modèle gratuit n&apos;existe pour la génération d&apos;image/vidéo — seul le chat (Mistral
-          Large, MiniMax M2) est testable sans compte.
+          Aucun modèle gratuit n&apos;existe pour la génération d&apos;image/vidéo — seul Mistral Large
+          est testable sans compte, en chat.
         </p>
       </div>
     </div>
