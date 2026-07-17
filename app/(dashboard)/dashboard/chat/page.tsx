@@ -316,7 +316,7 @@ async function sendToModel(historyMessages: ChatMessage[]) {
       });
 
       const rawText = await res.text();
-      let data: { content?: string; creditsCharged?: number; error?: string };
+      let data: { content: string; creditsCharged?: number; error?: string };
       try {
         data = JSON.parse(rawText);
       } catch (parseErr) {
@@ -328,6 +328,12 @@ async function sendToModel(historyMessages: ChatMessage[]) {
       if (!res.ok) {
         console.error("[VZR-CHAT] Erreur API dashboard-chat:", res.status, data);
         setError(data.error ?? `Une erreur est survenue (statut ${res.status}).`);
+        return;
+      }
+
+      if (!data.content) {
+        console.error("[VZR-CHAT] Réponse OK mais champ 'content' manquant:", data);
+        setError("Réponse du serveur incomplète. Détail en console.");
         return;
       }
 
