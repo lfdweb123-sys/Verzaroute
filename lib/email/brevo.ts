@@ -1,11 +1,14 @@
 /**
  * Client Brevo (ex-Sendinblue) — SERVEUR UNIQUEMENT.
- * Utilisé pour envoyer les retours "je n'aime pas" du chat par email.
+ * Utilisé pour envoyer les retours "je n'aime pas" du chat, et les factures
+ * PDF après achat de crédits, par email.
  */
 export async function sendBrevoEmail(params: {
   to: string;
   subject: string;
   htmlContent: string;
+  /** Pièces jointes optionnelles (ex: facture PDF), contenu encodé en base64. */
+  attachments?: { name: string; contentBase64: string }[];
 }): Promise<void> {
   const apiKey = process.env.BREVO_API_KEY;
   if (!apiKey) throw new Error("BREVO_API_KEY manquant dans l'environnement");
@@ -21,6 +24,9 @@ export async function sendBrevoEmail(params: {
       to: [{ email: params.to }],
       subject: params.subject,
       htmlContent: params.htmlContent,
+      ...(params.attachments
+        ? { attachment: params.attachments.map((a) => ({ name: a.name, content: a.contentBase64 })) }
+        : {}),
     }),
   });
 

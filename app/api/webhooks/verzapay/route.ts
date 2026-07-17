@@ -16,6 +16,13 @@
  * Format RÉEL confirmé du payload (plat, sans objet "data") :
  * { type, paymentId, amount, currency, status, customerName, customerPhone, companyId }
  *
+ * FACTURATION : une fois le compte crédité avec succès, une facture PDF est générée
+ * (lib/pdf/invoice.ts, via pdf-lib — pas de dépendance native, compatible serverless
+ * Vercel) et envoyée par email via Brevo en pièce jointe. Cet envoi est fait dans un
+ * try/catch séparé qui n'affecte jamais la réponse du webhook : le crédit est déjà
+ * acquis à ce stade, un échec d'email ne doit pas faire échouer tout le traitement
+ * ni risquer un retraitement du paiement par Verzapay.
+ *
  * Idempotent : creditUserAccount() ignore les paiements déjà traités (par verzapayPaymentId).
  * DEBUG : logs préfixés "[VZR-WEBHOOK]", visibles dans Vercel → Logs.
  */
@@ -23,8 +30,62 @@ import { NextRequest, NextResponse } from "next/server";
 import { isVerzapayEventFromOurAccount, type VerzapayWebhookEvent } from "@/lib/verzapay/client";
 import { creditUserAccount } from "@/lib/credits";
 import { adminDb } from "@/lib/firebase/admin";
+import { generateInvoicePdf } from "@/lib/pdf/invoice";
+import { sendBrevoEmail } from "@/lib/email/brevo";
 
 export const runtime = "nodejs";
+
+/**
+ * Génère la facture PDF et l'envoie par email — isolé dans sa propre fonction pour
+ * que toute erreur (Brevo indisponible, PDF malformé, etc.) reste confinée et ne
+ * remonte jamais jusqu'à faire échouer le webhook lui-même.
+ */
+async function sendInvoiceEmail(params: {
+  uid: string;
+  paymentId: string;
+  amountFcfa: number;
+  amountCredits: number;
+}) {
+  const userSnap = await adminDb.collection("users").doc(params.uid).get();
+  const userData = userSnap.data();
+  const email = userData?.email as string | undefined;
+  const displayName = (userData?.displayName as string | undefined) ?? "Client VerzaRoute";
+
+  if (!email) {
+    console.warn("[VZR-WEBHOOK] Aucun email trouvé pour uid:", params.uid, "— facture non envoyée");
+    return;
+  }
+
+  const invoiceNumber = `VR-${params.paymentId.slice(0, 10).toUpperCase()}`;
+
+  const pdfBytes = await generateInvoicePdf({
+    invoiceNumber,
+    customerName: displayName,
+    customerEmail: email,
+    amountFcfa: params.amountFcfa,
+    amountCredits: params.amountCredits,
+    paymentId: params.paymentId,
+    date: new Date(),
+  });
+
+  const pdfBase64 = Buffer.from(pdfBytes).toString("base64");
+
+  await sendBrevoEmail({
+    to: email,
+    subject: `Votre facture VerzaRoute — ${invoiceNumber}`,
+    htmlContent: `
+      <h2>Merci pour votre achat, ${displayName.replace(/</g, "&lt;")} !</h2>
+      <p>Votre paiement de <strong>${params.amountFcfa.toLocaleString("fr-FR")} FCFA</strong> a bien été
+      confirmé, et <strong>${params.amountCredits.toLocaleString("fr-FR")} crédits</strong> ont été
+      ajoutés à votre compte VerzaRoute.</p>
+      <p>Vous trouverez votre facture en pièce jointe (${invoiceNumber}).</p>
+      <p style="color:#888; font-size:12px; margin-top:24px;">VerzaRoute — verzaroute.com</p>
+    `,
+    attachments: [{ name: `${invoiceNumber}.pdf`, contentBase64: pdfBase64 }],
+  });
+
+  console.log("[VZR-WEBHOOK] Facture envoyée avec succès à:", email);
+}
 
 export async function POST(req: NextRequest) {
   console.log("[VZR-WEBHOOK] Requête POST reçue sur /api/webhooks/verzapay");
@@ -97,6 +158,18 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error("[VZR-WEBHOOK] ERREUR lors du crédit du compte:", err);
       throw err;
+    }
+
+    // Génération + envoi de la facture PDF — jamais bloquant pour le webhook.
+    try {
+      await sendInvoiceEmail({
+        uid,
+        paymentId: event.paymentId,
+        amountFcfa: event.amount,
+        amountCredits: creditsRequested,
+      });
+    } catch (err) {
+      console.error("[VZR-WEBHOOK] ERREUR lors de l'envoi de la facture par email (crédit déjà appliqué, non bloquant):", err);
     }
   } else if (event.type === "payment.failed") {
     console.log("[VZR-WEBHOOK] payment.failed reçu — aucune action de crédit (comportement attendu).");
