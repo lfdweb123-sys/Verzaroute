@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth/AuthContext";
 import { ThemeLoader } from "@/components/shared/ThemeLoader";
 import { FcmRegister } from "@/components/shared/FcmRegister";
+import { WatermarkClient } from "@/components/shared/WatermarkClient";
 
 export const metadata: Metadata = {
   title: "VerzaRoute — Plateforme de routage IA multi-modèles",
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <ThemeLoader />
           <FcmRegister />
+          <WatermarkClient />
           {children}
         </AuthProvider>
       </body>
