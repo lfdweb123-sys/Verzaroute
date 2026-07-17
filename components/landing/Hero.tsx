@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, FileText } from "lucide-react";
+import { ArrowRight, FileText, Sparkles } from "lucide-react";
 
 export function Hero() {
   return (
@@ -32,6 +32,13 @@ export function Hero() {
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-gold-gradient px-6 py-3.5 font-semibold text-obsidian shadow-gold transition-transform hover:scale-[1.03]"
               >
                 Commencer gratuitement <ArrowRight size={18} />
+              </Link>
+
+              <Link
+                href="/essai-gratuit"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-gold/40 bg-gold/5 px-6 py-3.5 font-semibold text-gold hover:bg-gold/10 transition-colors animate-pulse"
+              >
+                Essai gratuit sans compte <Sparkles size={18} />
               </Link>
 
               <Link

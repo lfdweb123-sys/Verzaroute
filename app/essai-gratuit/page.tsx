@@ -46,6 +46,7 @@ function MarkdownText({ text }: { text: string }) {
   );
 }
 
+/** Bandeau d'en-tête minimal, cohérent avec le reste du site, sans dépendre du dashboard. */
 function PublicHeader({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void }) {
   const { user } = useAuth();
 
@@ -98,6 +99,7 @@ function PublicHeader({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => voi
   );
 }
 
+/** Mode Discuter : modèles gratuits utilisables par tous, autres modèles réservés aux comptes connectés. */
 function ChatMode() {
   const { user } = useAuth();
   const [models, setModels] = useState<AiModel[]>([]);
@@ -157,6 +159,8 @@ function ChatMode() {
     setLoading(true);
 
     try {
+      // Utilisateur connecté -> endpoint authentifié classique (facture les modèles payants).
+      // Utilisateur anonyme -> endpoint public (modèles gratuits uniquement, sans facturation).
       const endpoint = user ? "/api/v1/dashboard-chat" : "/api/v1/public-chat";
       const res = await fetch(endpoint, {
         method: "POST",
@@ -188,7 +192,7 @@ function ChatMode() {
   const hasStarted = messages.length > 0;
 
   return (
-    <div className={cn("flex flex-col w-full", hasStarted ? "h-full" : "justify-center px-3 sm:px-4 py-10")}>
+    <div className={cn("flex flex-col w-full", hasStarted ? "h-full" : "justify-center px-3 sm:px-4 pt-20 sm:pt-28 pb-10")}>
       {!hasStarted && (
         <div className="max-w-2xl mx-auto w-full text-center mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
@@ -341,6 +345,7 @@ function ChatMode() {
   );
 }
 
+/** Modes Image/Vidéo : aucun modèle gratuit n'existe pour ces usages — accès direct réservé aux comptes connectés. */
 function LockedMode({ title, description, icon: Icon }: { title: string; description: string; icon: typeof ImagePlus }) {
   const { user } = useAuth();
 
