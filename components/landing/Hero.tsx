@@ -31,7 +31,7 @@ export function Hero() {
                 href="/register"
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-gold-gradient px-6 py-3.5 font-semibold text-obsidian shadow-gold transition-transform hover:scale-[1.03]"
               >
-                Commencer gratuitement <ArrowRight size={18} />
+                S'inscrire <ArrowRight size={18} />
               </Link>
 
               <Link
@@ -45,7 +45,7 @@ export function Hero() {
                 href="#comment-ca-marche"
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 px-6 py-3.5 font-semibold text-white/80 hover:border-gold/40 hover:text-white transition-colors"
               >
-                <FileText size={18} /> Découvrir VerzaRoute
+                <FileText size={18} /> Découvrir
               </Link>
             </div>
           </div>
