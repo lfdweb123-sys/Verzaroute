@@ -38,7 +38,7 @@ export function Hero() {
                 href="/essai-gratuit"
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-gold/40 bg-gold/5 px-6 py-3.5 font-semibold text-gold hover:bg-gold/10 transition-colors animate-pulse"
               >
-                Essai gratuit sans compte <Sparkles size={18} />
+                Essai gratuit <Sparkles size={18} />
               </Link>
 
               <Link
