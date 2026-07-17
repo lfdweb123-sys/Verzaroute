@@ -302,7 +302,7 @@ function ChatContent() {
     }
   }
 
-  async function sendToModel(historyMessages: ChatMessage[]) {
+async function sendToModel(historyMessages: ChatMessage[]) {
     setLoading(true);
     setError(null);
     try {
@@ -314,10 +314,20 @@ function ChatContent() {
           messages: historyMessages.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
-      const data = await res.json();
+
+      const rawText = await res.text();
+      let data: { content?: string; creditsCharged?: number; error?: string };
+      try {
+        data = JSON.parse(rawText);
+      } catch (parseErr) {
+        console.error("[VZR-CHAT] Réponse non-JSON reçue du serveur:", rawText.slice(0, 500));
+        setError(`Réponse invalide du serveur (statut ${res.status}). Détail en console.`);
+        return;
+      }
 
       if (!res.ok) {
-        setError(data.error ?? "Une erreur est survenue.");
+        console.error("[VZR-CHAT] Erreur API dashboard-chat:", res.status, data);
+        setError(data.error ?? `Une erreur est survenue (statut ${res.status}).`);
         return;
       }
 
@@ -327,8 +337,13 @@ function ChatContent() {
       ];
       setMessages(finalMessages);
       persistConversation(finalMessages);
-    } catch {
-      setError("Impossible de contacter le modèle. Vérifie ta connexion.");
+    } catch (err) {
+      console.error("[VZR-CHAT] Exception lors de l'appel à dashboard-chat:", err);
+      setError(
+        err instanceof Error
+          ? `Impossible de contacter le modèle : ${err.message}`
+          : "Impossible de contacter le modèle. Vérifie ta connexion."
+      );
     } finally {
       setLoading(false);
     }
