@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import type { AiModel } from "@/types";
 import {
   Send, Loader2, Bot, User as UserIcon, MessageSquare, ImagePlus, Film,
-  ChevronUp, Lock, Sparkles,
+  ChevronUp, Lock, Sparkles, Copy, Check, Pencil, RotateCcw, ThumbsUp, ThumbsDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import ReactMarkdown from "react-markdown";
@@ -21,24 +21,31 @@ interface ChatMessage {
   content: string;
 }
 
+/**
+ * Rendu Markdown volontairement compact (marges réduites par rapport à la version
+ * du dashboard) : sur cette page publique, les réponses doivent rester lisibles
+ * sans occuper un espace vertical excessif.
+ */
 function MarkdownText({ text }: { text: string }) {
   return (
     <ReactMarkdown
       components={{
-        h1: ({ children }) => <h1 className="text-base font-bold mt-2 mb-1.5 text-white">{children}</h1>,
-        h2: ({ children }) => <h2 className="text-[15px] font-bold mt-2 mb-1.5 text-white">{children}</h2>,
-        h3: ({ children }) => <h3 className="text-sm font-bold mt-2 mb-1 text-white">{children}</h3>,
-        p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+        h1: ({ children }) => <h1 className="text-sm font-bold mt-1.5 mb-1 text-white">{children}</h1>,
+        h2: ({ children }) => <h2 className="text-sm font-bold mt-1.5 mb-1 text-white">{children}</h2>,
+        h3: ({ children }) => <h3 className="text-sm font-bold mt-1.5 mb-1 text-white">{children}</h3>,
+        p: ({ children }) => <p className="mb-1.5 last:mb-0 leading-snug">{children}</p>,
         strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
-        ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-0.5 pl-1">{children}</ul>,
-        ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-0.5 pl-1">{children}</ol>,
-        li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+        em: ({ children }) => <em className="italic">{children}</em>,
+        ul: ({ children }) => <ul className="list-disc list-inside mb-1.5 space-y-0 pl-1 leading-snug">{children}</ul>,
+        ol: ({ children }) => <ol className="list-decimal list-inside mb-1.5 space-y-0 pl-1 leading-snug">{children}</ol>,
+        li: ({ children }) => <li className="leading-snug">{children}</li>,
         code: ({ children }) => (
-          <code className="rounded bg-black/40 px-1.5 py-0.5 text-[13px] font-mono text-gold/90">{children}</code>
+          <code className="rounded bg-black/40 px-1.5 py-0.5 text-[12px] font-mono text-gold/90">{children}</code>
         ),
         pre: ({ children }) => (
-          <pre className="rounded-lg bg-black/40 p-3 my-2 overflow-x-auto text-[13px] font-mono">{children}</pre>
+          <pre className="rounded-lg bg-black/40 p-2.5 my-1.5 overflow-x-auto text-[12px] font-mono">{children}</pre>
         ),
+        hr: () => <hr className="my-2 border-white/10" />,
       }}
     >
       {text}
@@ -56,7 +63,7 @@ function PublicHeader({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => voi
   ];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-obsidian/90 backdrop-blur-md">
+    <header className="shrink-0 border-b border-white/10 bg-obsidian/90 backdrop-blur-md">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 h-16 flex items-center justify-between">
         <Link href="/" className="shrink-0">
           <Image src="/icons/icon-192.png" alt="VerzaRoute" width={36} height={36} className="rounded-md" priority />
@@ -98,6 +105,13 @@ function PublicHeader({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => voi
   );
 }
 
+/**
+ * Mode Discuter. Architecture de hauteur IMPORTANTE : ce composant reçoit une
+ * hauteur fixe de son parent (voir EssaiGratuitPage : h-screen + overflow-hidden
+ * en cascade jusqu'ici). Seule la zone de messages défile (flex-1 min-h-0
+ * overflow-y-auto) — la zone de saisie est en dehors de ce flux et garde
+ * toujours la même position, jamais poussée par la longueur des réponses.
+ */
 function ChatMode() {
   const { user } = useAuth();
   const [models, setModels] = useState<AiModel[]>([]);
@@ -107,6 +121,10 @@ function ChatMode() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState("");
+  const [feedbackSentFor, setFeedbackSentFor] = useState<Record<number, "like" | "dislike">>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
 
@@ -140,28 +158,17 @@ function ChatMode() {
 
   const currentModel = models.find((m) => m.id === selectedModel);
   const requiresAccount = currentModel && !currentModel.isFreeTier && !user;
+  const hasStarted = messages.length > 0;
 
-  async function handleSend() {
-    if (!input.trim() || !selectedModel || loading) return;
-
-    if (requiresAccount) {
-      setError("Ce modèle nécessite un compte. Utilise Mistral Large gratuitement, ou crée un compte.");
-      return;
-    }
-
-    const userMessage: ChatMessage = { role: "user", content: input.trim() };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    setInput("");
-    setError(null);
+  async function sendToModel(historyMessages: ChatMessage[]) {
     setLoading(true);
-
+    setError(null);
     try {
       const endpoint = user ? "/api/v1/dashboard-chat" : "/api/v1/public-chat";
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: selectedModel, messages: newMessages }),
+        body: JSON.stringify({ model: selectedModel, messages: historyMessages }),
       });
       const data = await res.json();
 
@@ -170,12 +177,24 @@ function ChatMode() {
         return;
       }
 
-      setMessages((prev) => [...prev, { role: "assistant", content: data.content }]);
+      setMessages([...historyMessages, { role: "assistant", content: data.content }]);
     } catch {
       setError("Impossible de contacter le modèle. Vérifie ta connexion.");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleSend() {
+    if (!input.trim() || !selectedModel || loading) return;
+    if (requiresAccount) {
+      setError("Ce modèle nécessite un compte. Utilise Mistral Large gratuitement, ou crée un compte.");
+      return;
+    }
+    const newMessages = [...messages, { role: "user" as const, content: input.trim() }];
+    setMessages(newMessages);
+    setInput("");
+    await sendToModel(newMessages);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -185,79 +204,214 @@ function ChatMode() {
     }
   }
 
-  const hasStarted = messages.length > 0;
+  async function handleCopy(index: number, text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex((cur) => (cur === index ? null : cur)), 1500);
+    } catch {
+      setError("Impossible de copier le message.");
+    }
+  }
+
+  function startEdit(index: number) {
+    setEditingIndex(index);
+    setEditingText(messages[index].content);
+  }
+
+  function cancelEdit() {
+    setEditingIndex(null);
+    setEditingText("");
+  }
+
+  async function saveEdit(index: number) {
+    if (!editingText.trim()) return;
+    const newMessages = [...messages.slice(0, index), { role: "user" as const, content: editingText.trim() }];
+    setMessages(newMessages);
+    setEditingIndex(null);
+    setEditingText("");
+    await sendToModel(newMessages);
+  }
+
+  async function handleRetry(index: number) {
+    if (loading) return;
+    const newMessages = messages.slice(0, index + 1);
+    setMessages(newMessages);
+    await sendToModel(newMessages);
+  }
+
+  async function handleFeedback(index: number, type: "like" | "dislike") {
+    if (!user) {
+      setError("Crée un compte pour laisser un avis sur les réponses.");
+      return;
+    }
+    try {
+      await fetch("/api/v1/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          comment: "",
+          model: selectedModel,
+          userMessage: messages[index - 1]?.content ?? "",
+          assistantMessage: messages[index].content,
+        }),
+      });
+      setFeedbackSentFor((prev) => ({ ...prev, [index]: type }));
+    } catch {
+      // silencieux : le feedback est une fonctionnalité secondaire
+    }
+  }
 
   return (
-    <div className={cn("flex flex-col w-full", hasStarted ? "h-full" : "justify-center px-3 sm:px-4 pt-20 sm:pt-28 pb-10")}>
-      {!hasStarted && (
-        <div className="max-w-2xl mx-auto w-full text-center mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-            Essaie <span className="gold-text">gratuitement</span>, sans compte
-          </h1>
-          <p className="text-sm text-white/50">
-            Mistral Large est gratuit pour tout le monde. Crée un compte pour débloquer tous les autres
-            modèles et la génération d&apos;images/vidéos.
-          </p>
-        </div>
-      )}
+    <div className="flex flex-col h-full">
+      {/* Zone de messages : SEULE partie qui défile. flex-1 + min-h-0 est ce qui
+          empêche cette zone de pousser le reste de la mise en page — sans min-h-0,
+          un flex-item refuse de rétrécir sous son contenu et casse tout le scroll interne. */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {!hasStarted ? (
+          <div className="h-full flex flex-col items-center justify-center px-3 sm:px-4 text-center">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+              Essaie <span className="gold-text">gratuitement</span>, sans compte
+            </h1>
+            <p className="text-sm text-white/50 max-w-md">
+              Mistral Large est gratuit pour tout le monde. Crée un compte pour débloquer tous les
+              autres modèles et la génération d&apos;images/vidéos.
+            </p>
+          </div>
+        ) : (
+          <div ref={scrollRef} className="h-full overflow-y-auto p-3 md:p-6 space-y-2.5 max-w-2xl mx-auto w-full">
+            {messages.map((msg, i) => (
+              <div key={i} className={cn("group flex flex-col gap-1", msg.role === "user" ? "items-end" : "items-start")}>
+                <div className={cn("flex gap-2 w-full", msg.role === "user" ? "justify-end" : "justify-start")}>
+                  {msg.role === "assistant" && (
+                    <div className="h-7 w-7 shrink-0 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
+                      <Bot size={13} className="text-gold" />
+                    </div>
+                  )}
 
-      {hasStarted && (
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 md:p-6 space-y-3 md:space-y-4 max-w-3xl mx-auto w-full">
-          {messages.map((msg, i) => (
-            <div key={i} className={cn("flex gap-2 sm:gap-3", msg.role === "user" ? "justify-end" : "justify-start")}>
-              {msg.role === "assistant" && (
-                <div className="h-8 w-8 shrink-0 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
-                  <Bot size={15} className="text-gold" />
+                  {msg.role === "user" && editingIndex === i ? (
+                    <div className="max-w-[80%] w-full">
+                      <textarea
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        rows={2}
+                        className="w-full resize-none rounded-xl px-3 py-2 text-sm bg-obsidian border border-gold/40 text-white outline-none focus:border-gold"
+                        autoFocus
+                      />
+                      <div className="flex justify-end gap-2 mt-1.5">
+                        <button onClick={cancelEdit} className="rounded-md px-2.5 py-1 text-[11px] text-white/50 hover:text-white hover:bg-white/5 transition-colors">
+                          Annuler
+                        </button>
+                        <button
+                          onClick={() => saveEdit(i)}
+                          disabled={!editingText.trim() || loading}
+                          className="rounded-md bg-gold-gradient px-3 py-1 text-[11px] font-semibold text-obsidian disabled:opacity-40"
+                        >
+                          Renvoyer
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className={cn(
+                        "max-w-[80%] rounded-2xl px-3.5 py-2 text-sm leading-snug whitespace-pre-wrap break-words",
+                        msg.role === "user" ? "bg-gold-gradient text-obsidian font-medium" : "bg-obsidian-card border border-white/10 text-white/85"
+                      )}
+                    >
+                      {msg.role === "assistant" ? <MarkdownText text={msg.content} /> : msg.content}
+                    </div>
+                  )}
+
+                  {msg.role === "user" && (
+                    <div className="h-7 w-7 shrink-0 rounded-full bg-white/10 flex items-center justify-center">
+                      <UserIcon size={13} className="text-white/70" />
+                    </div>
+                  )}
                 </div>
-              )}
-              <div
-                className={cn(
-                  "max-w-[85%] sm:max-w-[75%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words",
-                  msg.role === "user" ? "bg-gold-gradient text-obsidian font-medium" : "bg-obsidian-card border border-white/10 text-white/85"
+
+                {!(msg.role === "user" && editingIndex === i) && (
+                  <div className={cn("flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity", msg.role === "user" ? "mr-9" : "ml-9")}>
+                    <button
+                      onClick={() => handleCopy(i, msg.content)}
+                      className="flex items-center rounded-md px-1.5 py-1 text-white/40 hover:text-white/80 hover:bg-white/5 transition-colors"
+                      title="Copier"
+                    >
+                      {copiedIndex === i ? <Check size={11} className="text-gold" /> : <Copy size={11} />}
+                    </button>
+
+                    {msg.role === "user" && (
+                      <>
+                        <button onClick={() => startEdit(i)} className="flex items-center rounded-md px-1.5 py-1 text-white/40 hover:text-white/80 hover:bg-white/5 transition-colors" title="Modifier">
+                          <Pencil size={11} />
+                        </button>
+                        <button
+                          onClick={() => handleRetry(i)}
+                          disabled={loading}
+                          className="flex items-center rounded-md px-1.5 py-1 text-white/40 hover:text-white/80 hover:bg-white/5 transition-colors disabled:opacity-30"
+                          title="Réessayer"
+                        >
+                          <RotateCcw size={11} />
+                        </button>
+                      </>
+                    )}
+
+                    {msg.role === "assistant" && (
+                      <>
+                        <button
+                          onClick={() => handleFeedback(i, "like")}
+                          disabled={!!feedbackSentFor[i]}
+                          className={cn("flex items-center rounded-md px-1.5 py-1 transition-colors", feedbackSentFor[i] === "like" ? "text-gold" : "text-white/40 hover:text-white/80 hover:bg-white/5")}
+                          title="J'aime cette réponse"
+                        >
+                          <ThumbsUp size={11} />
+                        </button>
+                        <button
+                          onClick={() => handleFeedback(i, "dislike")}
+                          disabled={!!feedbackSentFor[i]}
+                          className={cn("flex items-center rounded-md px-1.5 py-1 transition-colors", feedbackSentFor[i] === "dislike" ? "text-red-400" : "text-white/40 hover:text-white/80 hover:bg-white/5")}
+                          title="Je n'aime pas cette réponse"
+                        >
+                          <ThumbsDown size={11} />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 )}
-              >
-                {msg.role === "assistant" ? <MarkdownText text={msg.content} /> : msg.content}
               </div>
-              {msg.role === "user" && (
-                <div className="h-8 w-8 shrink-0 rounded-full bg-white/10 flex items-center justify-center">
-                  <UserIcon size={15} className="text-white/70" />
+            ))}
+
+            {loading && (
+              <div className="flex gap-2 justify-start">
+                <div className="h-7 w-7 shrink-0 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
+                  <Bot size={13} className="text-gold" />
                 </div>
-              )}
-            </div>
-          ))}
-          {loading && (
-            <div className="flex gap-3 justify-start">
-              <div className="h-8 w-8 shrink-0 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
-                <Bot size={15} className="text-gold" />
+                <div className="rounded-2xl px-3.5 py-2 bg-obsidian-card border border-white/10">
+                  <Loader2 size={14} className="animate-spin text-white/50" />
+                </div>
               </div>
-              <div className="rounded-2xl px-4 py-2.5 bg-obsidian-card border border-white/10">
-                <Loader2 size={16} className="animate-spin text-white/50" />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </div>
 
       {error && (
-        <div className={cn("px-4 py-2 bg-red-500/10 border-y border-red-500/20", !hasStarted && "max-w-2xl w-full mx-auto rounded-lg border mb-3")}>
-          <p className="text-sm text-red-400">{error}</p>
+        <div className="shrink-0 px-4 py-2 bg-red-500/10 border-y border-red-500/20">
+          <p className="text-sm text-red-400 max-w-2xl mx-auto">{error}</p>
         </div>
       )}
 
-      <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pb-6">
+      {/* Zone de saisie : shrink-0 explicite, en dehors du flux défilant — ne bouge
+          jamais, quelle que soit la longueur des réponses affichées au-dessus. */}
+      <div className="shrink-0 w-full max-w-2xl mx-auto px-3 sm:px-4 pb-4 pt-2">
         <div className="rounded-2xl border border-white/10 bg-obsidian-card overflow-visible">
           <div className="flex items-center justify-between px-4 pt-3 pb-1">
             <div className="relative" ref={modelPickerRef}>
-              <button
-                onClick={() => setModelPickerOpen((v) => !v)}
-                className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white/80 transition-colors"
-              >
+              <button onClick={() => setModelPickerOpen((v) => !v)} className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white/80 transition-colors">
                 <span className="uppercase tracking-wide">Modèle :</span>
                 <span className="font-medium text-white/85">{currentModel?.displayName ?? "Sélectionner"}</span>
                 {currentModel?.isFreeTier && (
-                  <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 text-[10px] text-emerald-400">
-                    Gratuit
-                  </span>
+                  <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 text-[10px] text-emerald-400">Gratuit</span>
                 )}
                 <ChevronUp size={12} className={cn("transition-transform", modelPickerOpen && "rotate-180")} />
               </button>
@@ -281,9 +435,7 @@ function ChatMode() {
                       >
                         <span className="truncate">{m.displayName}</span>
                         {m.isFreeTier ? (
-                          <span className="shrink-0 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 text-[10px] text-emerald-400">
-                            Gratuit
-                          </span>
+                          <span className="shrink-0 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 text-[10px] text-emerald-400">Gratuit</span>
                         ) : locked ? (
                           <Lock size={12} className="shrink-0 text-white/30" />
                         ) : null}
@@ -341,7 +493,7 @@ function LockedMode({ title, description, icon: Icon }: { title: string; descrip
 
   if (user) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center px-4 py-16">
+      <div className="flex flex-col items-center justify-center h-full text-center px-4">
         <Icon size={32} className="text-gold/50 mb-3" />
         <p className="text-white/60 text-sm mb-4">Continue directement depuis ton tableau de bord.</p>
         <Link
@@ -355,7 +507,7 @@ function LockedMode({ title, description, icon: Icon }: { title: string; descrip
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center px-4 py-16">
+    <div className="flex flex-col items-center justify-center h-full text-center px-4">
       <div className="rounded-2xl border border-white/10 bg-obsidian-card p-8 max-w-md">
         <Icon size={32} className="text-gold/50 mx-auto mb-4" />
         <h2 className="text-xl font-bold text-white mb-2">{title}</h2>
@@ -379,7 +531,10 @@ export default function EssaiGratuitPage() {
   const [mode, setMode] = useState<Mode>("chat");
 
   return (
-    <main className="min-h-screen bg-obsidian flex flex-col">
+    // h-screen (PAS min-h-screen) + overflow-hidden : contraint la page entière à
+    // la hauteur exacte du viewport, sans quoi le contenu peut grandir librement
+    // et pousser toute la mise en page (y compris le champ de saisie) vers le bas.
+    <main className="h-screen bg-obsidian flex flex-col overflow-hidden">
       <PublicHeader mode={mode} setMode={setMode} />
       <div className="flex-1 min-h-0">
         {mode === "chat" && <ChatMode />}

@@ -20,6 +20,24 @@ const GOLD = rgb(0.831, 0.686, 0.216); // #D4AF37
 const DARK = rgb(0.06, 0.06, 0.06);
 const GRAY = rgb(0.45, 0.45, 0.45);
 
+function formatDateSafe(d: Date): string {
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${d.getFullYear()}`;
+}
+
+/**
+ * Formate un nombre avec un espace normal (U+0020) comme séparateur de milliers.
+ * IMPORTANT : ne jamais utiliser `.toLocaleString("fr-FR")` dans ce fichier — la
+ * locale française insère un espace insécable fine (U+202F) comme séparateur, un
+ * caractère que la police WinAnsi standard de pdf-lib ne sait pas encoder, ce qui
+ * fait planter drawText() dès qu'un montant dépasse 3 chiffres (bug reproduit en
+ * production sur un montant de 1639 crédits).
+ */
+function formatNumberSafe(n: number): string {
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+
 export async function generateInvoicePdf(data: InvoiceData): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595.28, 841.89]); // A4
@@ -52,7 +70,7 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Uint8Array>
   // Infos facture (colonne droite, alignée avec le bloc client)
   let yRight = y + 32;
   page.drawText("Date", { x: width - 200, y: yRight, size: 10, font: fontBold, color: GRAY });
-  page.drawText(data.date.toLocaleDateString("fr-FR"), { x: width - 100, y: yRight, size: 10, font: fontRegular, color: DARK });
+  page.drawText(formatDateSafe(data.date), { x: width - 100, y: yRight, size: 10, font: fontRegular, color: DARK });
   yRight -= 16;
   page.drawText("Réf. paiement", { x: width - 200, y: yRight, size: 10, font: fontBold, color: GRAY });
   page.drawText(data.paymentId, { x: width - 200, y: yRight - 14, size: 8, font: fontRegular, color: DARK });
@@ -69,8 +87,8 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Uint8Array>
   // Tableau — ligne
   const rowY = tableTop - 24 - 30;
   page.drawText("Achat de credits VerzaRoute", { x: 60, y: rowY, size: 10, font: fontRegular, color: DARK });
-  page.drawText(data.amountCredits.toLocaleString("fr-FR"), { x: width - 220, y: rowY, size: 10, font: fontRegular, color: DARK });
-  page.drawText(`${data.amountFcfa.toLocaleString("fr-FR")} FCFA`, { x: width - 120, y: rowY, size: 10, font: fontRegular, color: DARK });
+  page.drawText(formatNumberSafe(data.amountCredits), { x: width - 220, y: rowY, size: 10, font: fontRegular, color: DARK });
+  page.drawText(`${formatNumberSafe(data.amountFcfa)} FCFA`, { x: width - 120, y: rowY, size: 10, font: fontRegular, color: DARK });
 
   page.drawLine({
     start: { x: 50, y: rowY - 12 },
@@ -82,7 +100,7 @@ export async function generateInvoicePdf(data: InvoiceData): Promise<Uint8Array>
   // Total
   const totalY = rowY - 40;
   page.drawText("Total payé", { x: width - 220, y: totalY, size: 12, font: fontBold, color: DARK });
-  page.drawText(`${data.amountFcfa.toLocaleString("fr-FR")} FCFA`, { x: width - 120, y: totalY, size: 12, font: fontBold, color: GOLD });
+  page.drawText(`${formatNumberSafe(data.amountFcfa)} FCFA`, { x: width - 120, y: totalY, size: 12, font: fontBold, color: GOLD });
 
   // Pied de page
   page.drawText("Paiement traité via Verzapay. Merci de votre confiance.", {
