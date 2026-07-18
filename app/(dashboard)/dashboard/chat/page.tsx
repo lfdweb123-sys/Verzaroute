@@ -767,7 +767,6 @@ async function sendToModel(historyMessages: ChatMessage[]) {
                         onClick={() => {
                           setSelectedModel(m.id);
                           setModelPickerOpen(false);
-                          if (hasStartedConversation) setMessages([]);
                         }}
                         className={cn(
                           "w-full px-3 py-2 text-left text-xs sm:text-sm hover:bg-white/5 transition-colors truncate block",
