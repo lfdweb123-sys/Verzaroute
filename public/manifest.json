@@ -2,7 +2,7 @@
   "name": "VerzaRoute - AI Payment Routing Platform",
   "short_name": "VerzaRoute",
   "description": "Accédez à GPT, Claude, Gemini, Grok, DeepSeek, Mistral, Kimi, MiniMax, Z.ai et StepFun via une seule clé API et un seul solde de crédits.",
-  "start_url": "/dashboard",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
