@@ -1,14 +1,9 @@
-/**
- * Endpoint de chat pour l'interface du dashboard (/dashboard/chat).
- * Authentifie via le cookie de session (utilisateur connecté), pas via une clé API vzr_sk_.
- * Réutilise la même logique de résolution de modèle, débit de crédits et journalisation
- * que /api/v1/chat/completions, mais sans exiger que l'utilisateur génère/colle une clé.
- */
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { getProviderAdapter } from "@/lib/providers";
 import { computeCreditsCharged, debitCredits } from "@/lib/credits";
+import { performWebSearch, formatSearchResultsAsContext } from "@/lib/search/serper";
 import type { AiModel, PlatformSettings } from "@/types";
 
 export const runtime = "nodejs";
@@ -59,7 +54,7 @@ export async function POST(req: NextRequest) {
   if (!uid) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
-  const { model: modelId, messages } = body;
+  const { model: modelId, messages, webSearch } = body;
 
   if (!modelId || !Array.isArray(messages)) {
     return NextResponse.json({ error: "Les champs 'model' et 'messages' sont requis" }, { status: 400 });
@@ -90,12 +85,50 @@ export async function POST(req: NextRequest) {
   const startedAt = Date.now();
   const providerModelId = model.apiModelId ?? modelId;
 
+  let messagesToSend = messages;
+  if (webSearch) {
+    const lastUserIndex = messages.map((m: { role: string }) => m.role).lastIndexOf("user");
+    if (lastUserIndex !== -1) {
+      const lastMsg = messages[lastUserIndex];
+      const queryText =
+        typeof lastMsg.content === "string"
+          ? lastMsg.content
+          : (lastMsg.content.find((b: { type: string }) => b.type === "text") as { text?: string } | undefined)?.text ?? "";
+
+      if (queryText) {
+        try {
+          const results = await performWebSearch(queryText);
+          const searchContext = formatSearchResultsAsContext(queryText, results);
+          const augmented = [...messages];
+          if (typeof lastMsg.content === "string") {
+            augmented[lastUserIndex] = {
+              ...lastMsg,
+              content: `${searchContext}\n\n---\n\nQuestion de l'utilisateur : ${lastMsg.content}`,
+            };
+          } else {
+            augmented[lastUserIndex] = {
+              ...lastMsg,
+              content: lastMsg.content.map((b: { type: string; text?: string }) =>
+                b.type === "text"
+                  ? { ...b, text: `${searchContext}\n\n---\n\nQuestion de l'utilisateur : ${b.text}` }
+                  : b
+              ),
+            };
+          }
+          messagesToSend = augmented;
+        } catch (err) {
+          console.error("[VZR-CHAT] Échec de la recherche web (on continue sans):", err);
+        }
+      }
+    }
+  }
+
   try {
     const result = await adapter.chat({
       model: providerModelId,
-      messages,
+      messages: messagesToSend,
       temperature: 0.7,
-      max_tokens: 1024,
+      max_tokens: 4096,
     });
 
     const creditsCharged = computeCreditsCharged({

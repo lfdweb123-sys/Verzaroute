@@ -1,3 +1,8 @@
+/**
+ * Endpoint de génération d'image pour le dashboard (/dashboard/images).
+ * Authentifie via le cookie de session, débite les crédits au forfait par image
+ * (pas au token, contrairement au chat), et journalise l'appel.
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
@@ -101,8 +106,7 @@ export async function POST(req: NextRequest) {
       latencyMs: Date.now() - startedAt,
     });
 
-    // Persistance pour l'historique de la page /dashboard/images (panneau HistorySidebar).
-    await adminDb.collection("imageGenerations").add({
+    const imageDocRef = await adminDb.collection("imageGenerations").add({
       uid,
       model: modelId,
       prompt,
@@ -114,6 +118,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({
+      imageId: imageDocRef.id,
       base64: result.base64,
       mimeType: result.mimeType,
       creditsCharged,

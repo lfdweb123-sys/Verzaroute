@@ -9,13 +9,9 @@
  *
  * NOTE DE FIABILITÉ : les identifiants OpenAI/Anthropic/Meta ajoutés dans ce lot proviennent
  * d'une liste fournie directement, sans re-vérification individuelle via recherche web pour
- * chacun (contrairement aux modèles Google/image/MiniMax, vérifiés par recherche ou doc
- * officielle collée). Si un identifiant précis renvoie une erreur "Unknown model"/404 en
- * usage réel, il faudra le corriger au cas par cas.
- *
- * isFreeTier: SEUL Mistral Large est gratuit (utilisable sans compte via /essai-gratuit).
- * MiniMax a été vérifié comme payant (erreur 401 confirmée + tableau de bord MiniMax à 0$
- * de solde) — ne jamais le remarquer comme gratuit sans nouvelle vérification explicite.
+ * chacun (contrairement aux modèles Google/image, vérifiés par recherche). Si un identifiant
+ * précis renvoie une erreur "Unknown model"/404 en usage réel, il faudra le corriger au cas
+ * par cas — signale-le et je vérifierai ce modèle précis.
  */
 import type { AiModel } from "@/types";
 
@@ -242,6 +238,8 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
 
   // ============ GOOGLE (CHAT) — identifiants vérifiés par recherche web ============
   {
+    // gemini-2.5-pro a un quota gratuit nul sur de nombreux projets (429, limit:0) et sera
+    // déprécié le 16/10/2026. Remplacement officiel confirmé par Google : gemini-3.1-pro-preview.
     provider: "google",
     displayName: "Gemini 3.1 Pro",
     apiModelId: "gemini-3.1-pro-preview",
@@ -254,6 +252,9 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     tags: ["multimodal", "long-contexte"],
   },
   {
+    // gemini-2.5-flash ET gemini-2.5-flash-lite sont tous deux restreints aux comptes
+    // existants avant leur date de fin de vie (16/10/2026) — confirmé par table de
+    // dépréciation officielle Google. Remplacement GA stable et non restreint : gemini-3.5-flash.
     provider: "google",
     displayName: "Gemini 3.5 Flash",
     apiModelId: "gemini-3.5-flash",
@@ -266,6 +267,11 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     tags: ["rapide", "agentique"],
   },
 
+  // ============ META AI (LLAMA) ============
+  // NOTE : Meta ne propose pas d'API officielle grand public pour Llama — ces modèles sont
+  // généralement accédés via des fournisseurs tiers (Together AI, Groq, Fireworks, etc.).
+  // Ils sont ajoutés ici avec le provider "meta" — À CRÉER dans lib/providers/ (adapter +
+  // clé API + base URL d'un hébergeur compatible) avant que ces entrées soient fonctionnelles.
   // ============ META AI (LLAMA) — servis via Together AI, identifiants officiels confirmés ============
   {
     provider: "meta",
@@ -356,15 +362,63 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
   },
   {
     provider: "moonshot",
-    displayName: "Kimi K2.6",
-    apiModelId: "kimi-k2.6",
-    description: "Modèle de Moonshot AI, très bon en agents et longues conversations.",
-    contextWindow: 256000,
-    inputPricePerMTokUsd: 0.6,
-    outputPricePerMTokUsd: 2.5,
+    displayName: "Kimi K3",
+    apiModelId: "kimi-k3",
+    description: "Modèle phare de Moonshot AI, raisonnement de pointe, fenêtre de contexte 1M tokens, agents longue durée.",
+    contextWindow: 1048576,
+    inputPricePerMTokUsd: 3,
+    outputPricePerMTokUsd: 15,
     marginPercent: 25,
     enabled: true,
-    tags: ["agents", "long-contexte"],
+    tags: ["raisonnement", "agents", "long-contexte"],
+  },
+  {
+    provider: "moonshot",
+    displayName: "Kimi K2.7 Code",
+    apiModelId: "kimi-k2.7-code",
+    description: "Modèle Moonshot AI spécialisé code, très bon taux de réussite sur tâches longues, entrée texte/image/vidéo.",
+    contextWindow: 262144,
+    inputPricePerMTokUsd: 0.95,
+    outputPricePerMTokUsd: 4,
+    marginPercent: 25,
+    enabled: true,
+    tags: ["code", "multimodal"],
+  },
+  {
+    provider: "moonshot",
+    displayName: "Kimi K2.7 Code HighSpeed",
+    apiModelId: "kimi-k2.7-code-highspeed",
+    description: "Version rapide de Kimi K2.7 Code (jusqu'à 260 tokens/s), même modèle, latence réduite.",
+    contextWindow: 262144,
+    inputPricePerMTokUsd: 1.9,
+    outputPricePerMTokUsd: 8,
+    marginPercent: 25,
+    enabled: true,
+    tags: ["code", "rapide"],
+  },
+  {
+    provider: "moonshot",
+    displayName: "Kimi K2.6",
+    apiModelId: "kimi-k2.6",
+    description: "Modèle généraliste Moonshot AI, code longue durée stable, entrée texte/image/vidéo.",
+    contextWindow: 262144,
+    inputPricePerMTokUsd: 0.95,
+    outputPricePerMTokUsd: 4,
+    marginPercent: 25,
+    enabled: true,
+    tags: ["agents", "long-contexte", "multimodal"],
+  },
+  {
+    provider: "moonshot",
+    displayName: "Kimi K2.5",
+    apiModelId: "kimi-k2.5",
+    description: "Modèle multimodal Moonshot AI (texte/image/vidéo), raisonnement approfondi.",
+    contextWindow: 262144,
+    inputPricePerMTokUsd: 0.6,
+    outputPricePerMTokUsd: 3,
+    marginPercent: 25,
+    enabled: true,
+    tags: ["multimodal", "raisonnement"],
   },
   {
     provider: "minimax",
@@ -405,6 +459,9 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
 
   // ============ GÉNÉRATION D'IMAGE ============
   {
+    // response_format n'existe PAS pour les modèles GPT Image (gpt-image-1/2) — uniquement
+    // pour dall-e-2/3 (legacy). L'API renvoie toujours b64_json par défaut pour GPT Image.
+    // Voir lib/providers/image-generation.ts : ce paramètre ne doit plus être envoyé du tout.
     provider: "openai",
     displayName: "GPT Image 2",
     apiModelId: "gpt-image-2",
@@ -419,6 +476,11 @@ export const MODELS_CATALOG: Omit<AiModel, "id">[] = [
     pricePerImageUsd: 0.05,
   },
   {
+    // Imagen est déprécié par Google au profit des modèles image Gemini ("Nano Banana").
+    // Remplacement confirmé par la doc officielle Google : gemini-2.5-flash-image.
+    // ATTENTION : ce modèle utilise generateContent (comme le chat), pas l'endpoint
+    // dédié Imagen predict — l'adaptateur lib/providers/image-generation.ts doit être
+    // adapté en conséquence pour ce modèle précis.
     provider: "google",
     displayName: "Gemini Flash Image",
     apiModelId: "gemini-2.5-flash-image",

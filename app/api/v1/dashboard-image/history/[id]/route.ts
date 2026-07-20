@@ -1,7 +1,27 @@
-/** Supprime une image générée précise de l'historique. */
+/** Récupère ou supprime une image générée précise de l'historique. */
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
+
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const session = cookies().get("session")?.value;
+  if (!session) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+  const decoded = await adminAuth.verifySessionCookie(session, true).catch(() => null);
+  if (!decoded) return NextResponse.json({ error: "Session invalide" }, { status: 401 });
+
+  const snap = await adminDb.collection("imageGenerations").doc(params.id).get();
+  if (!snap.exists || snap.data()?.uid !== decoded.uid) {
+    return NextResponse.json({ error: "Image introuvable" }, { status: 404 });
+  }
+
+  const data = snap.data();
+  return NextResponse.json({
+    id: params.id,
+    base64: data?.base64,
+    mimeType: data?.mimeType,
+    prompt: data?.prompt,
+  });
+}
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const session = cookies().get("session")?.value;
