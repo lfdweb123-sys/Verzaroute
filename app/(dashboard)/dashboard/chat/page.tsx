@@ -692,7 +692,7 @@ function ChatContent() {
           className="max-w-full h-auto rounded-lg border border-white/10 block"
         />
         
-          href={`data:${cached.mimeType};base64,${cached.base64}`}
+        <a  href={`data:${cached.mimeType};base64,${cached.base64}`}
           download="verzaroute-image.png"
           className="inline-flex items-center gap-1 text-[11px] text-gold hover:underline"
         >
