@@ -16,6 +16,19 @@ import {
 import { cn } from "@/lib/utils/cn";
 import ReactMarkdown from "react-markdown";
 
+/**
+ * Détecte si un message texte ressemble à une demande de génération d'image, pour
+ * router automatiquement vers la génération d'image même sans activer le bouton
+ * dédié (ex: "génère-moi une image de..."). Reste volontairement permissif mais
+ * ciblé sur des tournures françaises courantes — pas une détection parfaite.
+ */
+function looksLikeImageRequest(text: string): boolean {
+  const t = text.toLowerCase();
+  const hasImageWord = /(image|photo|illustration|dessin|logo|affiche|icône|icone|visuel)/.test(t);
+  const hasVerb = /(g[ée]n[èe]re|dessine|cr[ée]e|fais[- ]moi|montre[- ]moi|imagine)/.test(t);
+  return hasImageWord && hasVerb;
+}
+
 type ContentBlock =
   | { type: "text"; text: string }
   | { type: "image"; base64: string; mimeType: string }
@@ -45,19 +58,7 @@ interface PendingAttachment {
   mimeType: string;
 }
 
-/**
- * Détecte si un message texte ressemble à une demande de génération d'image, pour
- * router automatiquement vers la génération d'image même sans activer le bouton
- * dédié (ex: "génère-moi une image de..."). Reste volontairement permissif mais
- * ciblé sur des tournures françaises courantes — pas une détection parfaite.
- */
-function looksLikeImageRequest(text: string): boolean {
-  const t = text.toLowerCase();
-  const hasImageWord = /(image|photo|illustration|dessin|logo|affiche|icône|icone|visuel)/.test(t);
-  const hasVerb = /(g[ée]n[èe]re|dessine|cr[ée]e|fais[- ]moi|montre[- ]moi|imagine)/.test(t);
-  return hasImageWord && hasVerb;
-}
-
+/** Rendu Markdown resserré : moins d'espace vertical entre lignes/paragraphes pour un rendu plus dense et "pro". */
 function MarkdownText({ text }: { text: string }) {
   return (
     <ReactMarkdown
@@ -400,49 +401,6 @@ function ChatContent() {
     }
   }
 
-  /** Génère une image inline dans la conversation, à la place d'un appel texte classique. */
-  async function handleGenerateImage(promptText: string, newMessagesWithUser: ChatMessage[]) {
-    if (!selectedImageModel) {
-      setError("Aucun modèle de génération d'image disponible.");
-      return;
-    }
-    setGeneratingImage(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/v1/dashboard-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: selectedImageModel, prompt: promptText, size: "1024x1024" }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error ?? "Échec de la génération d'image.");
-        return;
-      }
-
-      const finalMessages: ChatMessage[] = [
-        ...newMessagesWithUser,
-        {
-          role: "assistant",
-          content: "",
-          creditsCharged: data.creditsCharged,
-          imageId: data.imageId,
-          imagePrompt: promptText,
-        },
-      ];
-      setMessages(finalMessages);
-      if (data.imageId) {
-        setImageCache((prev) => ({ ...prev, [data.imageId]: { base64: data.base64, mimeType: data.mimeType } }));
-      }
-      persistConversation(finalMessages);
-    } catch {
-      setError("Impossible de générer l'image. Vérifie ta connexion.");
-    } finally {
-      setGeneratingImage(false);
-    }
-  }
-
   async function handleCopy(index: number, content: ChatMessage["content"]) {
     const text = getMessageText(content);
     if (!text) return;
@@ -491,6 +449,9 @@ function ChatContent() {
         return;
       }
 
+      // Détecte un gros bloc de code dans la réponse : s'il y en a un, on le sort du
+      // texte affiché et on l'ouvre automatiquement dans le panneau latéral, comme
+      // le fait Claude avec les Artifacts pour ne pas noyer la conversation.
       const { remainingText, artifact } = extractLargeCodeBlock(data.content);
 
       const finalMessages: ChatMessage[] = [
@@ -509,6 +470,51 @@ function ChatContent() {
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  /** Génère une image inline dans la conversation, à la place d'un appel texte classique. */
+  async function handleGenerateImage(promptText: string, newMessagesWithUser: ChatMessage[]) {
+    if (!selectedImageModel) {
+      setError("Aucun modèle de génération d'image disponible.");
+      return;
+    }
+    setGeneratingImage(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/v1/dashboard-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: selectedImageModel, prompt: promptText, size: "1024x1024" }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error ?? "Échec de la génération d'image.");
+        return;
+      }
+
+      const finalMessages: ChatMessage[] = [
+        ...newMessagesWithUser,
+        {
+          role: "assistant",
+          content: "",
+          creditsCharged: data.creditsCharged,
+          imageId: data.imageId,
+          imagePrompt: promptText,
+        },
+      ];
+      setMessages(finalMessages);
+      // On alimente immédiatement le cache local avec ce qu'on vient de recevoir,
+      // pour ne pas devoir re-télécharger l'image qu'on affiche déjà.
+      if (data.imageId) {
+        setImageCache((prev) => ({ ...prev, [data.imageId]: { base64: data.base64, mimeType: data.mimeType } }));
+      }
+      persistConversation(finalMessages);
+    } catch {
+      setError("Impossible de générer l'image. Vérifie ta connexion.");
+    } finally {
+      setGeneratingImage(false);
     }
   }
 
@@ -691,8 +697,8 @@ function ChatContent() {
           alt={prompt ?? "Image générée"}
           className="max-w-full h-auto rounded-lg border border-white/10 block"
         />
-        
-        <a  href={`data:${cached.mimeType};base64,${cached.base64}`}
+        <a
+          href={`data:${cached.mimeType};base64,${cached.base64}`}
           download="verzaroute-image.png"
           className="inline-flex items-center gap-1 text-[11px] text-gold hover:underline"
         >
@@ -711,6 +717,8 @@ function ChatContent() {
 
     if (text !== null) {
       if (role === "assistant") {
+        // Remplace le repère laissé par extractLargeCodeBlock par une carte cliquable
+        // qui rouvre le panneau de code, au lieu d'afficher le code brut inline.
         if (text.includes("__CODE_ARTIFACT__") && artifact) {
           const parts = text.split("__CODE_ARTIFACT__");
           return (
@@ -781,6 +789,8 @@ function ChatContent() {
           deleteAllLabel="Supprimer toutes les discussions"
         />
 
+        {/* flex-1 min-w-0 : occupe TOUT l'espace restant, y compris quand HistorySidebar
+            est fermée (elle ne rend alors qu'un petit bouton, pas un panneau vide). */}
         <div
           className={cn(
             "flex flex-col flex-1 min-w-0 transition-all duration-500 ease-in-out min-h-0",
@@ -834,6 +844,8 @@ function ChatContent() {
                         msg.role === "user" ? "bg-gold-gradient text-obsidian font-medium" : "bg-obsidian-card border border-white/10 text-white/85"
                       )}
                     >
+                      {/* Bouton copier flottant, visible au survol directement sur la bulle
+                          (surface de la réponse), comme demandé — plus seulement en dessous. */}
                       <button
                         onClick={() => handleCopy(i, msg.content)}
                         className={cn(
@@ -865,6 +877,13 @@ function ChatContent() {
                       msg.role === "user" ? "mr-9 sm:mr-11" : "ml-9 sm:ml-11"
                     )}
                   >
+                    <button
+                      onClick={() => handleCopy(i, msg.content)}
+                      className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] text-white/40 hover:text-white/80 hover:bg-white/5 transition-colors"
+                      title="Copier"
+                    >
+                      {copiedIndex === i ? <Check size={12} className="text-gold" /> : <Copy size={12} />}
+                    </button>
                     {msg.role === "user" && (
                       <>
                         <button
@@ -1091,6 +1110,8 @@ function ChatContent() {
               </div>
             </div>
 
+            {/* Champ de saisie réduit : hauteur de base plus petite (22px au lieu de 24px)
+                et padding vertical resserré, pour un pavé de saisie moins imposant. */}
             <div className="px-3 sm:px-4 pt-0.5">
               <textarea
                 ref={textareaRef}
@@ -1120,6 +1141,8 @@ function ChatContent() {
                 >
                   <Paperclip size={16} />
                 </button>
+                {/* Recherche web : maintenant fonctionnel, ajoute webSearch:true à la requête
+                    qui déclenche une recherche Serper.dev injectée en contexte au modèle. */}
                 <button
                   onClick={() => setWebSearchOn((v) => !v)}
                   className={cn(
