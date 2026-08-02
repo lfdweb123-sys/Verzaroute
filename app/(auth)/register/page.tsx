@@ -46,6 +46,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [countryCode, setCountryCode] = useState("+225");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -68,7 +69,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const fullPhoneNumber = `${countryCode}${digitsOnly}`;
-      await registerWithEmail(email, password, fullPhoneNumber);
+      await registerWithEmail(email, password, fullPhoneNumber, referralCode.trim() || undefined);
     } catch (err) {
       setError(mapAuthError(err));
     } finally {
@@ -106,11 +107,6 @@ export default function RegisterPage() {
         </svg>
         S&apos;inscrire avec Google
       </button>
-
-      <p className="text-[11px] text-white/40 text-center -mt-3 mb-6">
-        Avec Google, il te sera demandé d&apos;ajouter ton numéro de téléphone ensuite (requis pour
-        acheter des crédits).
-      </p>
 
       <div className="flex items-center gap-3 mb-6">
         <div className="h-px flex-1 bg-white/10" />
@@ -154,9 +150,18 @@ export default function RegisterPage() {
               placeholder="0700000000"
             />
           </div>
-          <p className="text-[11px] text-white/40 mt-1">
-            Requis pour créer un paiement (Mobile Money / carte) via Verzapay.
-          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm text-white/70 mb-1.5">Code de parrainage (optionnel)</label>
+          <input
+            type="text"
+            value={referralCode}
+            onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+            className="w-full rounded-lg border border-white/15 bg-obsidian px-3.5 py-2.5 text-white outline-none focus:border-gold/50 transition-colors font-mono uppercase"
+            placeholder="EX: A3B7C9D"
+            maxLength={10}
+          />
         </div>
 
         <div>
