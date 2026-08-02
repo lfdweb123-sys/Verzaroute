@@ -1,4 +1,4 @@
-export type Role = "user" | "admin";
+export type Role = "user" | "admin" | "creator";
 
 export interface UserProfile {
   uid: string;
@@ -11,6 +11,10 @@ export interface UserProfile {
   updatedAt: number;
   disabled?: boolean;
   phoneNumber?: string;
+  /** Code de parrainage personnel — uniquement présent pour les comptes role "creator". */
+  referralCode?: string;
+  /** uid du créateur qui a parrainé ce compte, s'il en existe un (défini une seule fois). */
+  referredBy?: string;
 }
 
 export interface ApiKeyRecord {
@@ -39,20 +43,7 @@ export interface AiModel {
   modality?: "text" | "image" | "video";
   pricePerImageUsd?: number;
   pricePerVideoSecondUsd?: number;
-  /**
-   * Identifiant EXACT attendu par l'API du fournisseur (ex: "gemini-2.5-flash",
-   * "mistral-large-latest"). DIFFÉRENT de `id`, qui est un slug utilisé comme clé
-   * de document Firestore et généré en remplaçant tout caractère non-alphanumérique
-   * par un tiret (donc "Gemini 2.5 Flash" → id "gemini-2-5-flash", ce qui casserait
-   * l'appel réel à l'API si on l'utilisait tel quel). Si absent, on retombe sur `id`
-   * par compatibilité, mais tout nouveau modèle doit définir ce champ explicitement.
-   */
   apiModelId?: string;
-  /**
-   * Si true, ce modèle est utilisable gratuitement, sans compte ni crédits, via la
-   * page publique /essai-gratuit. Ne concerne que les modèles de chat (modality
-   * "text" ou absente) — la génération d'image/vidéo reste toujours payante.
-   */
   isFreeTier?: boolean;
 }
 
@@ -143,7 +134,6 @@ export interface VideoJob {
   updatedAt: number;
 }
 
-/** Une conversation de chat persistée, pour l'historique sur /dashboard/chat. */
 export interface Conversation {
   id: string;
   uid: string;
@@ -154,7 +144,6 @@ export interface Conversation {
   updatedAt: number;
 }
 
-/** Une image générée et persistée, pour l'historique sur /dashboard/images. */
 export interface ImageGenerationRecord {
   id: string;
   uid: string;
@@ -165,4 +154,31 @@ export interface ImageGenerationRecord {
   size: string;
   creditsCharged: number;
   createdAt: number;
+}
+
+/**
+ * Une commission de parrainage générée quand un filleul (referredBy défini) fait un
+ * dépôt. 2% du montant FCFA du dépôt, versé au créateur qui l'a parrainé. Ces
+ * enregistrements sont agrégés puis marqués "paidOut" quand un paiement mensuel est
+ * effectué manuellement par l'admin (voir CreatorPayoutRequest).
+ */
+export interface ReferralEarning {
+  id: string;
+  creatorUid: string;
+  referredUid: string;
+  verzapayPaymentId: string;
+  amountFcfa: number;
+  createdAt: number;
+  paidOut: boolean;
+}
+
+/** Demande de paiement mensuel d'un créateur, traitée manuellement par l'admin. */
+export interface CreatorPayoutRequest {
+  id: string;
+  creatorUid: string;
+  amountFcfa: number;
+  status: "pending" | "paid" | "rejected";
+  requestedAt: number;
+  paidAt?: number;
+  note?: string;
 }
