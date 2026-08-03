@@ -17,7 +17,6 @@ interface ReferralStats {
   hasPendingRequest: boolean;
 }
 
-/** Section visible uniquement pour les comptes role: "creator". */
 function ReferralProgramSection() {
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -33,7 +32,6 @@ function ReferralProgramSection() {
       const data = await res.json();
       if (res.ok) {
         if (!data.referralCode) {
-          // Génère le code automatiquement au premier chargement si absent.
           const genRes = await fetch("/api/v1/referral/generate-code", { method: "POST" });
           const genData = await genRes.json();
           setStats({ ...data, referralCode: genData.referralCode ?? null });
@@ -166,7 +164,6 @@ function ReferralProgramSection() {
   );
 }
 
-/** Champ pour appliquer un code de parrainage oublié à l'inscription (une seule fois). */
 function ReferralCodeInputSection() {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -344,11 +341,9 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* Section parrainage : uniquement pour les comptes créateur */}
-        {profile?.role === "creator" && <ReferralProgramSection />}
+        {profile?.role === "creactor" && <ReferralProgramSection />}
 
-        {/* Champ de code oublié : uniquement si pas encore de parrain associé */}
-        {profile && !profile.referredBy && profile.role !== "creator" && <ReferralCodeInputSection />}
+        {profile && !profile.referredBy && profile.role !== "creactor" && <ReferralCodeInputSection />}
 
         <div className="rounded-2xl border border-white/10 bg-obsidian-card p-5 md:p-6">
           <h2 className="text-white font-semibold mb-3">Compte</h2>
