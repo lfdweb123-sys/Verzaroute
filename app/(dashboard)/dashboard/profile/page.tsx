@@ -169,70 +169,6 @@ function ReferralProgramSection() {
   );
 }
 
-function ReferralCodeInputSection() {
-  const [code, setCode] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
-  async function handleApply() {
-    if (!code.trim()) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/v1/referral/apply-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: code.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Code invalide.");
-        return;
-      }
-      setSuccess(true);
-    } catch {
-      setError("Impossible de contacter le serveur.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (success) {
-    return (
-      <div className="rounded-2xl border border-white/10 bg-obsidian-card p-5 md:p-6">
-        <p className="text-sm text-gold">Code de parrainage appliqué avec succès !</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-2xl border border-white/10 bg-obsidian-card p-5 md:p-6">
-      <h2 className="text-white font-semibold mb-1.5">Code de parrainage</h2>
-      <p className="text-xs text-white/50 mb-4">
-        Tu as oublié de renseigner un code de parrainage à l&apos;inscription ? Ajoute-le ici (une seule fois).
-      </p>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder="EX: A3B7C9D"
-          className="flex-1 rounded-lg border border-white/15 bg-obsidian px-3.5 py-2.5 text-white outline-none focus:border-gold/50 transition-colors font-mono uppercase"
-        />
-        <button
-          onClick={handleApply}
-          disabled={submitting || !code.trim()}
-          className="rounded-lg bg-gold-gradient px-5 py-2.5 font-semibold text-obsidian hover:scale-[1.02] transition-transform disabled:opacity-40 shrink-0"
-        >
-          {submitting ? "..." : "Appliquer"}
-        </button>
-      </div>
-      {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
-    </div>
-  );
-}
-
 export default function ProfilePage() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -348,7 +284,6 @@ export default function ProfilePage() {
 
         {profile?.role === "creactor" && <ReferralProgramSection />}
 
-        {profile && !profile.referredBy && profile.role !== "creactor" && <ReferralCodeInputSection />}
 
         <div className="rounded-2xl border border-white/10 bg-obsidian-card p-5 md:p-6">
           <h2 className="text-white font-semibold mb-3">Compte</h2>
