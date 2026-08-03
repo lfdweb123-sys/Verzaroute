@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { FirebaseError } from "firebase/app";
@@ -40,15 +41,43 @@ function mapAuthError(err: unknown): string {
 }
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterForm />
+    </Suspense>
+  );
+}
+
+function RegisterForm() {
   const { signInWithGoogle, registerWithEmail } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [countryCode, setCountryCode] = useState("+225");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [referralCode, setReferralCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const searchParams = useSearchParams();
+  // Le paramètre `ref` porte désormais un UUID public (jamais le code interne).
+  const refUuid = searchParams.get("ref") || "";
+  const [sponsor, setSponsor] = useState<{ displayName: string } | null>(null);
+
+  /* Résout le UUID de parrainage côté serveur.
+     Si invalide ou inconnu, l'utilisateur s'inscrit simplement sans parrain. */
+  useEffect(() => {
+    if (!refUuid) return;
+    let cancelled = false;
+    fetch(`/api/v1/referral/public/${encodeURIComponent(refUuid)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled && data?.success) setSponsor({ displayName: data.displayName });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [refUuid]);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -69,7 +98,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const fullPhoneNumber = `${countryCode}${digitsOnly}`;
-      await registerWithEmail(email, password, fullPhoneNumber, referralCode.trim() || undefined);
+      await registerWithEmail(email, password, fullPhoneNumber, sponsor ? refUuid : undefined);
     } catch (err) {
       setError(mapAuthError(err));
     } finally {
@@ -92,6 +121,11 @@ export default function RegisterPage() {
         </Link>
         <h1 className="text-xl font-semibold text-white">Créer votre compte</h1>
         <p className="text-sm text-white/50 mt-1">Accédez à 10 fournisseurs IA avec une seule clé</p>
+        {sponsor && (
+          <p className="mt-3 rounded-lg border border-gold/30 bg-gold/10 px-3 py-2 text-sm font-medium text-gold">
+            🎉 {sponsor.displayName} vous invite sur VerzaRoute
+          </p>
+        )}
       </div>
 
       <button
@@ -150,18 +184,6 @@ export default function RegisterPage() {
               placeholder="0700000000"
             />
           </div>
-        </div>
-
-        <div>
-          <label className="block text-sm text-white/70 mb-1.5">Code de parrainage (optionnel)</label>
-          <input
-            type="text"
-            value={referralCode}
-            onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-            className="w-full rounded-lg border border-white/15 bg-obsidian px-3.5 py-2.5 text-white outline-none focus:border-gold/50 transition-colors font-mono uppercase"
-            placeholder="EX: A3B7C9D"
-            maxLength={10}
-          />
         </div>
 
         <div>

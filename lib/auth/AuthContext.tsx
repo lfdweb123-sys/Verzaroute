@@ -19,7 +19,7 @@ interface AuthContextValue {
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
-  registerWithEmail: (email: string, password: string, phoneNumber: string, referralCode?: string) => Promise<void>;
+  registerWithEmail: (email: string, password: string, phoneNumber: string, referralUuid?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -29,7 +29,7 @@ async function establishServerSession(
   user: User,
   router: ReturnType<typeof useRouter>,
   phoneNumber?: string,
-  referralCode?: string
+  referralUuid?: string
 ) {
   console.log(LOG, "establishServerSession() démarré pour uid:", user.uid, "email:", user.email);
 
@@ -38,7 +38,7 @@ async function establishServerSession(
   const res = await fetch("/api/auth/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idToken, phoneNumber, referralCode }),
+    body: JSON.stringify({ idToken, phoneNumber, referralUuid }),
   });
 
   if (!res.ok) {
@@ -95,10 +95,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await establishServerSession(cred.user, router);
   };
 
-  const registerWithEmail = async (email: string, password: string, phoneNumber: string, referralCode?: string) => {
+  const registerWithEmail = async (email: string, password: string, phoneNumber: string, referralUuid?: string) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     sessionEstablishedFor.current = cred.user.uid;
-    await establishServerSession(cred.user, router, phoneNumber, referralCode);
+    await establishServerSession(cred.user, router, phoneNumber, referralUuid);
   };
 
   const signOut = async () => {

@@ -10,6 +10,7 @@ import { Check, Phone, AlertTriangle, Users, Copy, Gift, Wallet } from "lucide-r
 
 interface ReferralStats {
   referralCode: string | null;
+  referralPublicId: string | null;
   referralCount: number;
   totalEarnedFcfa: number;
   paidOutFcfa: number;
@@ -31,10 +32,14 @@ function ReferralProgramSection() {
       const res = await fetch("/api/v1/referral/stats");
       const data = await res.json();
       if (res.ok) {
-        if (!data.referralCode) {
+        if (!data.referralCode || !data.referralPublicId) {
           const genRes = await fetch("/api/v1/referral/generate-code", { method: "POST" });
           const genData = await genRes.json();
-          setStats({ ...data, referralCode: genData.referralCode ?? null });
+          setStats({
+            ...data,
+            referralCode: genData.referralCode ?? null,
+            referralPublicId: genData.referralPublicId ?? null,
+          });
         } else {
           setStats(data);
         }
@@ -50,7 +55,7 @@ function ReferralProgramSection() {
     loadStats();
   }, []);
 
-  const referralLink = stats?.referralCode ? `https://verzaroute.com/register?ref=${stats.referralCode}` : "";
+  const referralLink = stats?.referralPublicId ? `https://verzaroute.com/register?ref=${stats.referralPublicId}` : "";
 
   async function handleCopyLink() {
     if (!referralLink) return;

@@ -1,4 +1,5 @@
 /** Génère un code de parrainage court, lisible et unique (vérifié en base). */
+import { randomUUID } from "node:crypto";
 import { adminDb } from "@/lib/firebase/admin";
 
 const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sans caractères ambigus (0/O, 1/I/l)
@@ -16,4 +17,9 @@ export async function generateUniqueReferralCode(): Promise<string> {
     if (existing.empty) return code;
   }
   throw new Error("Impossible de générer un code de parrainage unique après plusieurs tentatives");
+}
+
+/** UUID public exposé dans les liens de parrainage (?ref=uuid) à la place du code interne. */
+export function generateReferralPublicId(): string {
+  return randomUUID();
 }

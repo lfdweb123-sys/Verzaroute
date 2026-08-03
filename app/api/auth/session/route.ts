@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     console.error("[VZR-SESSION] Échec du parsing JSON du corps de la requête:", err);
     return {};
   });
-  const { idToken, phoneNumber } = body;
+  const { idToken, phoneNumber, referralUuid } = body;
 
   if (!idToken) {
     console.warn("[VZR-SESSION] Aucun idToken fourni dans le corps de la requête");
@@ -34,6 +34,26 @@ export async function POST(req: NextRequest) {
 
     if (!snap.exists) {
       console.log("[VZR-SESSION] Création du profil utilisateur Firestore pour uid:", decoded.uid);
+
+      // Résolution serveur du UUID de parrainage → uid du parrain.
+      // Un UUID invalide/inconnu n'empêche jamais l'inscription : le compte
+      // est simplement créé sans parrain.
+      let referredBy: string | null = null;
+      if (typeof referralUuid === "string" && referralUuid.trim()) {
+        try {
+          const referrerSnap = await adminDb
+            .collection("users")
+            .where("referralPublicId", "==", referralUuid.trim())
+            .limit(1)
+            .get();
+          if (!referrerSnap.empty && referrerSnap.docs[0].id !== decoded.uid) {
+            referredBy = referrerSnap.docs[0].id;
+          }
+        } catch (err) {
+          console.error("[VZR-SESSION] Résolution du parrainage échouée:", err);
+        }
+      }
+
       await userRef.set({
         uid: decoded.uid,
         email: decoded.email ?? "",
@@ -44,6 +64,7 @@ export async function POST(req: NextRequest) {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         ...(phoneNumber ? { phoneNumber } : {}),
+        ...(referredBy ? { referredBy } : {}),
       });
       await adminAuth.setCustomUserClaims(decoded.uid, { role: "user" });
       console.log("[VZR-SESSION] Profil utilisateur créé et rôle 'user' attribué (custom claims)");

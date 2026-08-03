@@ -33,6 +33,7 @@ export async function GET() {
 
   return NextResponse.json({
     referralCode: userData?.referralCode ?? null,
+    referralPublicId: userData?.referralPublicId ?? null,
     referralCount: referralsSnap.size,
     totalEarnedFcfa,
     paidOutFcfa,

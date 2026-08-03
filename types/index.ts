@@ -11,8 +11,10 @@ export interface UserProfile {
   updatedAt: number;
   disabled?: boolean;
   phoneNumber?: string;
-  /** Code de parrainage personnel — uniquement présent pour les comptes role "creator". */
+  /** Code de parrainage personnel — uniquement présent pour les comptes role "creator". Usage interne, jamais exposé publiquement. */
   referralCode?: string;
+  /** UUID public de parrainage, exposé dans les liens (?ref=uuid) à la place du code interne. */
+  referralPublicId?: string;
   /** uid du créateur qui a parrainé ce compte, s'il en existe un (défini une seule fois). */
   referredBy?: string;
 }
